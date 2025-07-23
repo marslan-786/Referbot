@@ -49,26 +49,43 @@ async def has_joined_all_channels(bot, user_id: int) -> (bool, list):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
 
+    if not admin_channels:
+        await fetch_admin_channels(context.bot, REQUIRED_CHANNELS)
+
     if user.id == OWNER_ID:
-        await update.message.reply_text("🎉 Welcome, Owner! You have direct access to the bot features.")
+        # Owner کو سیدھا مین مینیو بھیج دو
+        await send_main_menu(update)
         return
 
-    # Check user join status and cache it
-    if user.id in user_join_status and user_join_status[user.id]:
-        await update.message.reply_text("🎉 You have already joined all channels! You can now use the bot features.")
-        return
+    joined_all = await check_user_joined_all(context.bot, user.id)
 
-    joined_all, not_joined = await has_joined_all_channels(context.bot, user.id)
-    user_join_status[user.id] = joined_all
+    if not joined_all:
+        # چینلز جوائن کروانے والا میسج + بٹن + بینر
+        await show_join_channels(update)
+    else:
+        # مین مینیو شو کرو
+        await send_main_menu(update)
 
-    if joined_all:
-        await update.message.reply_text("🎉 You have joined all required channels! You can now use the bot features.")
-        return
 
-    # Create buttons for required channels
+async def send_main_menu(update: Update):
+    keyboard = [
+        [InlineKeyboardButton("My Account", callback_data="my_account")],
+        [InlineKeyboardButton("My Referrals", callback_data="my_referrals")],
+        [InlineKeyboardButton("Invite Referral Code", callback_data="invite_referral")],
+        [InlineKeyboardButton("Withdrawal", callback_data="withdrawal")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    with open("banner.jpg", "rb") as photo:
+        await update.message.reply_photo(
+            photo=photo,
+            caption="A Free Radio Code - Welcome to Redeem Code",
+            reply_markup=reply_markup
+        )
+
+
+async def show_join_channels(update: Update):
     keyboard = []
     temp_row = []
-
     for i, channel in enumerate(REQUIRED_CHANNELS, 1):
         temp_row.append(InlineKeyboardButton(channel["name"], url=channel["link"]))
         if i % 2 == 0:
@@ -80,17 +97,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard.append([InlineKeyboardButton("✅ Joined", callback_data="check_joined")])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    try:
-        with open("banner.jpg", "rb") as photo:
-            await update.message.reply_photo(
-                photo=photo,
-                caption="👇 Please join all channels to use the bot 👇",
-                reply_markup=reply_markup
-            )
-    except Exception as e:
-        logging.warning(f"banner.jpg not found or failed to send: {e}")
-        await update.message.reply_text(
-            "👇 Please join all channels to use the bot 👇",
+    with open("banner.jpg", "rb") as photo:
+        await update.message.reply_photo(
+            photo=photo,
+            caption="👇 Please join all channels to use the bot 👇",
             reply_markup=reply_markup
         )
 
