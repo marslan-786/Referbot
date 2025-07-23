@@ -396,7 +396,6 @@ def main():
     app.add_handler(CallbackQueryHandler(check_joined, pattern="^check_joined$"))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(CallbackQueryHandler(main_menu_handler, pattern="^main_menu$"))
-    app.add_handler(CallbackQueryHandler(redeem_handler, pattern="^redeem_"))
     app.add_handler(CallbackQueryHandler(my_account_menu, pattern="^my_account$"))
     app.add_handler(CallbackQueryHandler(my_referrals, pattern="^my_referrals$"))
     app.add_handler(CallbackQueryHandler(invite_referral_link, pattern="^invite_referral$"))
