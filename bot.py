@@ -5,7 +5,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 logging.basicConfig(level=logging.INFO)
 
 # ----------- CONFIG -----------
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+BOT_TOKEN = "7902248899:AAHElm3aHJeP3IZiy2SN3jLAgV7ZwRXnvdo"
 
 REQUIRED_CHANNELS = [
     {"name": "Channel 1", "link": "https://t.me/+92ZkRWBBExhmNzY1"},
