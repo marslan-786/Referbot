@@ -13,7 +13,7 @@ REQUIRED_CHANNELS = [
     {"name": "Channel 3", "link": "https://t.me/+ggvGbpCytFU5NzQ1"},
     {"name": "Channel 4", "link": "https://t.me/+ddWJ_3i9FKEwYzM9"},
     {"name": "Channel 5", "link": "https://t.me/+VCRRpYGKMz8xY2U0"},
-    {"name": "Channel 6", "link": "https://t.me/+ggvGbpCytFU5NzQ1"},
+    {"name": "Channel 6", "link": "https://t.me/botsworldtar"},
 ]
 
 OWNER_ID = 8003357608
@@ -169,14 +169,19 @@ async def my_referrals_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     user_id = str(query.from_user.id)
 
-    users = load_users()
+    # users.json کو محفوظ طریقے سے لوڈ کریں
+    try:
+        users = load_users()
+    except Exception:
+        users = {}
 
     if user_id not in users:
         referrals = []
         points = 0
     else:
-        referrals = users[user_id].get("referrals", [])
-        points = users[user_id].get("points", 0)
+        user_data = users[user_id]
+        referrals = user_data.get("referrals", [])
+        points = user_data.get("points", 0)
 
     referrals_count = len(referrals)
 
@@ -197,16 +202,22 @@ async def my_account_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     user_id = str(query.from_user.id)
 
-    users = load_users()
+    # load users.json safely
+    try:
+        users = load_users()
+    except Exception:
+        users = {}
 
+    # اگر یوزر موجود نہیں تو ڈیفالٹ ویلیوز دیں
     if user_id not in users:
         user_balance = 0
         user_referrals = 0
         min_withdrawal = 40
     else:
-        user_balance = users[user_id].get("points", 0)
-        user_referrals = len(users[user_id].get("referrals", []))
-        min_withdrawal = 40  # آپ اپنی مرضی سے بدل سکتے ہیں
+        user_data = users[user_id]
+        user_balance = user_data.get("points", 0)
+        user_referrals = len(user_data.get("referrals", []))
+        min_withdrawal = 40  # ضرورت کے مطابق تبدیل کریں
 
     text = (
         f"📊 Your Account Info:\n\n"
@@ -220,6 +231,7 @@ async def my_account_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
+    # اب میسج کو ایڈٹ کرتے ہوئے کیپشن اور بٹن بھیجیں
     await query.edit_message_caption(caption=text, reply_markup=reply_markup)
     
 async def invite_referral_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -238,6 +250,12 @@ async def invite_referral_handler(update: Update, context: ContextTypes.DEFAULT_
     )
 
     keyboard = [
+        # یہ بٹن یوزر کو لنک پر لے جائے گا، جہاں سے وہ کاپی کر سکتے ہیں
+        [InlineKeyboardButton("🔗 Open Link", url=referral_link)],
+
+        # ٹیلیگرام شیئر بٹن (صرف نئے کلائنٹس پر کام کرے گا)
+        [InlineKeyboardButton("📤 Share Link", url=f"tg://msg_url?url={referral_link}")],
+
         [InlineKeyboardButton("⬅️ Back", callback_data="back_to_menu")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
