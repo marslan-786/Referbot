@@ -1,8 +1,15 @@
 import os
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, filters
 import json
 import uuid
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    CallbackContext,
+    MessageHandler,
+    filters
+)
 
 # Bot configuration
 TOKEN = "7902248899:AAHElm3aHJeP3IZiy2SN3jLAgV7ZwRXnvdo"
@@ -195,18 +202,20 @@ def back_to_menu_keyboard():
     ]
     return InlineKeyboardMarkup(keyboard)
 
+
+
+# باقی تمام کوڈ وہی رہے گا، صرف main() فنکشن بدلے گا:
+
 def main() -> None:
     # Initialize user database
     init_user_db()
     
-    updater = Updater(TOKEN)
-    dispatcher = updater.dispatcher
+    application = ApplicationBuilder().token(TOKEN).build()
 
-    dispatcher.add_handler(CommandHandler('start', start))
-    dispatcher.add_handler(CallbackQueryHandler(button))
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(CallbackQueryHandler(button))
 
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
