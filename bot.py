@@ -73,12 +73,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text and len(text.split()) > 1:
         referral_code = text.split()[1]
 
-    # Owner gets direct main menu without referral checks
+    # ✅ Make sure user exists in users.json even without referral
+    if str(user.id) not in users:
+        users[str(user.id)] = {"referrals": [], "points": 0}
+        save_users(users)
+
+    # 🛡 Owner bypasses all checks
     if user.id == OWNER_ID:
         await send_main_menu(update)
         return
 
-    # Referral processing (if any)
+    # 💡 Referral processing (if provided)
     if referral_code:
         referrer_id = referral_code
         if referrer_id != str(user.id):  # Prevent self-referral
@@ -89,12 +94,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 users[referrer_id]["referrals"].append(str(user.id))
                 users[referrer_id]["points"] += 2
 
-                if str(user.id) not in users:
-                    users[str(user.id)] = {"referrals": [], "points": 0}
-
                 save_users(users)
 
-                # Notify referrer about new referral
+                # Notify referrer
                 try:
                     referrer_chat_id = int(referrer_id)
                     referred_username = user.username or "NoUsername"
@@ -109,7 +111,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except Exception as e:
                     print(f"Error sending referral notification: {e}")
 
-    # Show join channels prompt unconditionally (no admin/channel join check here)
+    # ✅ Show join channels prompt unconditionally
     await show_join_channels(update)
         
 admin_channels = []
