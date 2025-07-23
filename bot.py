@@ -5,7 +5,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 logging.basicConfig(level=logging.INFO)
 
 # ---------- CONFIG ----------
-BOT_TOKEN = "7902248899:AAHElm3aHJeP3IZiy2SN3jLAgV7ZwRXnvdo"
+BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
 
 REQUIRED_CHANNELS = [
     {"name": "Channel 1", "link": "https://t.me/+92ZkRWBBExhmNzY1"},
@@ -18,9 +18,6 @@ REQUIRED_CHANNELS = [
 
 OWNER_ID = 8003357608
 channel_cache = {}
-admin_channels = []
-
-# user_join_status: user_id -> bool (True if joined all channels)
 user_join_status = {}
 
 # ---------- UTILS ----------
@@ -32,37 +29,20 @@ async def get_channel_id(bot, link: str) -> int:
     return chat.id
 
 
-async def fetch_admin_channels(bot, required_channels):
-    global admin_channels
-    admin_channels = []
+async def has_joined_all_channels(bot, user_id: int) -> (bool, list):
+    not_joined_channels = []
 
-    bot_user_id = (await bot.get_me()).id
-    for channel in required_channels:
+    for channel in REQUIRED_CHANNELS:
         try:
-            chat = await bot.get_chat(channel['link'])
-            admins = await bot.get_chat_administrators(chat.id)
-
-            is_admin = any(admin.user.id == bot_user_id for admin in admins)
-            if is_admin:
-                admin_channels.append(chat.id)
-                print(f"✅ Bot is admin in: {channel['name']} ({chat.id})")
-        except Exception as e:
-            print(f"❌ Error in checking admin for {channel['name']}: {e}")
-
-
-async def has_joined_all_channels(bot, user_id: int) -> bool:
-    """
-    چیک کرے کہ یوزر admin_channels میں سے سب میں member ہے یا نہیں۔
-    """
-    for chat_id in admin_channels:
-        try:
+            chat_id = await get_channel_id(bot, channel['link'])
             member = await bot.get_chat_member(chat_id, user_id)
             if member.status not in ['member', 'administrator', 'creator']:
-                return False
+                not_joined_channels.append(channel['name'])
         except Exception as e:
-            print(f"Error checking membership in channel ID {chat_id}: {e}")
-            return False
-    return True
+            logging.warning(f"Error checking membership for {channel['name']}: {e}")
+            not_joined_channels.append(channel['name'])
+
+    return (len(not_joined_channels) == 0, not_joined_channels)
 
 
 # ---------- HANDLERS ----------
@@ -73,22 +53,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🎉 Welcome, Owner! You have direct access to the bot features.")
         return
 
-    # پہلے چیک کریں user نے already join کر رکھا ہے؟
+    # Check user join status and cache it
     if user.id in user_join_status and user_join_status[user.id]:
-        # پہلے سے joined ہے، اس لیے join message skip کریں
-        await update.message.reply_text("🎉 آپ نے پہلے ہی تمام چینلز جوائن کر لیے ہیں! اب آپ باقی فیچرز استعمال کر سکتے ہیں۔")
+        await update.message.reply_text("🎉 You have already joined all channels! You can now use the bot features.")
         return
 
-    # user join status چیک کریں اور update کریں
-    joined_all = await has_joined_all_channels(context.bot, user.id)
+    joined_all, not_joined = await has_joined_all_channels(context.bot, user.id)
     user_join_status[user.id] = joined_all
 
     if joined_all:
-        # اگر user نے تمام چینلز جوائن کر لیے تو join message skip کریں
-        await update.message.reply_text("🎉 آپ نے تمام چینلز جوائن کر لیے ہیں! اب آپ باقی فیچرز استعمال کر سکتے ہیں۔")
+        await update.message.reply_text("🎉 You have joined all required channels! You can now use the bot features.")
         return
 
-    # join نہیں کیا تو banner کے ساتھ join buttons بھیجیں (banner + buttons ایک ساتھ)
+    # Create buttons for required channels
     keyboard = []
     temp_row = []
 
@@ -105,16 +82,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         with open("banner.jpg", "rb") as photo:
-            # banner اور buttons ایک میسج میں
             await update.message.reply_photo(
                 photo=photo,
-                caption="👇 براہ کرم تمام چینلز جوائن کریں تاکہ آپ بوٹ استعمال کر سکیں 👇",
+                caption="👇 Please join all channels to use the bot 👇",
                 reply_markup=reply_markup
             )
     except Exception as e:
-        # اگر banner.jpg نہیں ملا تو صرف text بھیج دیں
+        logging.warning(f"banner.jpg not found or failed to send: {e}")
         await update.message.reply_text(
-            "👇 براہ کرم تمام چینلز جوائن کریں تاکہ آپ بوٹ استعمال کر سکیں 👇",
+            "👇 Please join all channels to use the bot 👇",
             reply_markup=reply_markup
         )
 
@@ -123,35 +99,20 @@ async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
 
-    not_joined = []
+    joined_all, not_joined = await has_joined_all_channels(context.bot, user_id)
 
-    for chat_id in admin_channels:
-        try:
-            member = await context.bot.get_chat_member(chat_id, user_id)
-            if member.status not in ['member', 'administrator', 'creator']:
-                ch_name = next((ch['name'] for ch in REQUIRED_CHANNELS if await get_channel_id(context.bot, ch['link']) == chat_id), str(chat_id))
-                not_joined.append(ch_name)
-        except Exception as e:
-            print(f"Error checking membership in channel ID {chat_id}: {e}")
-            not_joined.append(str(chat_id))
-
-    if not_joined:
+    if not joined_all:
         not_joined_str = "\n".join(f"❌ {name}" for name in not_joined)
-        await query.answer(f"آپ نے یہ چینلز جوائن نہیں کیے ہیں:\n{not_joined_str}", show_alert=True)
+        await query.answer(f"You have NOT joined:\n{not_joined_str}", show_alert=True)
     else:
-        user_join_status[user_id] = True  # status update کریں یہاں بھی
-        await query.answer("✅ آپ نے تمام چینلز جوائن کر لیے ہیں!", show_alert=True)
-        await query.edit_message_caption("🎉 آپ نے تمام ضروری چینلز جوائن کر لیے ہیں!")
+        user_join_status[user_id] = True
+        await query.answer("✅ You have joined all required channels!", show_alert=True)
+        await query.edit_message_caption("🎉 You have joined all required channels!")
 
 
 # ---------- MAIN ----------
-async def on_startup(app: Application):
-    await fetch_admin_channels(app.bot, REQUIRED_CHANNELS)
-    print("✅ Admin channels fetched on startup.")
-
-
 def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).post_init(on_startup).build()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(check_joined, pattern="^check_joined$"))
