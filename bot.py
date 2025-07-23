@@ -1,6 +1,20 @@
+import os
+import json
 import logging
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, Application
+
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+)
+from telegram.constants import ParseMode
+from telegram.ext import (
+    ApplicationBuilder,
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes,
+)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -22,8 +36,6 @@ user_join_status = {}
 admin_channels = []  # global variable
 
 
-import json
-import os
 
 USER_FILE = "users.json"
 
@@ -137,9 +149,6 @@ async def show_join_channels(update: Update):
         )
 
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
-
 async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = context.user_data
     query = update.callback_query
@@ -158,10 +167,6 @@ async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_main_menu(update)
 
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, ParseMode
-from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes
-import json
-from telegram.constants import ParseMode
 
 async def send_main_menu(update: Update):
     keyboard = [
