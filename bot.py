@@ -76,65 +76,66 @@ async def has_joined_all_channels(bot, user_id: int) -> (bool, list):
 # ---------- HANDLERS ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    message = update.message or update.effective_message
-    text = message.text if message else ""
+    user_id = str(user.id)
 
-    users = load_users()
-
-    # ✅ Save user in users.json (if not exists)
-    if str(user.id) not in users:
-        users[str(user.id)] = {
-            "referrals": [],
-            "points": 0,
-            "name": f"{user.full_name}"
+    # Load or create user
+    if user_id not in users_data:
+        users_data[user_id] = {
+            "referrer": None,
+            "invited": 0,
+            "joined_at": datetime.utcnow().isoformat()
         }
-        save_users(users)
 
-    # ✅ Always show join channels (even for owner)
-    await show_join_channels(update)
+    # Save user data
+    save_json("users.json", users_data)
 
-
-async def show_join_channels(update: Update):
+    # Dynamically build channel buttons from REQUIRED_CHANNELS
     keyboard = []
-    temp_row = []
-    for i, channel in enumerate(REQUIRED_CHANNELS, 1):
-        temp_row.append(InlineKeyboardButton(channel["name"], url=channel["link"]))
-        if i % 2 == 0:
-            keyboard.append(temp_row)
-            temp_row = []
-    if temp_row:
-        keyboard.append(temp_row)
+    for i, channel in enumerate(REQUIRED_CHANNELS, start=1):
+        keyboard.append([
+            InlineKeyboardButton(f"📢 Join {channel['name']}", url=channel['link'])
+        ])
 
-    keyboard.append([InlineKeyboardButton("✅ Joined", callback_data="check_joined")])
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    # Add the "I've Joined" button
+    keyboard.append([
+        InlineKeyboardButton("✅ I've Joined", callback_data="check_joined")
+    ])
 
-    try:
-        with open("banner.jpg", "rb") as photo:
-            await update.effective_chat.send_photo(
-                photo=photo,
-                caption="👇 Please join all channels to use the bot 👇",
-                reply_markup=reply_markup
-            )
-    except Exception as e:
-        print(f"Error sending join banner: {e}")
+    # Send welcome message with channel join menu
+    await update.message.reply_photo(
+        photo=InputFile("banner.jpg"),
+        caption="👋 Welcome! Please join all the required channels below to continue:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import ContextTypes
+import json
+import os
+
+CHECK_FILE = "user_check_count.json"
 
 
 async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    data = context.user_data
     query = update.callback_query
+    user_id = str(query.from_user.id)
+
     await query.answer()
 
-    if not data.get("has_seen_error"):
-        data["has_seen_error"] = True
-        await query.message.reply_text("❌ Please first join all required channels before proceeding.")
-    else:
-        # صرف میسج ڈیلیٹ کرنے کی کوشش کریں، اگر ہو سکے
-        try:
-            await query.message.delete()
-        except Exception as e:
-            print(f"Message delete error in check_joined: {e}")
+    # Load join check count
+    join_count = user_check_data.get(user_id, 0)
 
-        await send_main_menu(update)
+    # Increase and save count
+    join_count += 1
+    user_check_data[user_id] = join_count
+    save_json("user_check_count.json", user_check_data)
+
+    if join_count == 1:
+        await query.message.reply_text("❌ You have not joined all channels. Please join them and try again.")
+    else:
+        await query.message.reply_text("✅ Thank you! Access granted.")
+        await send_main_menu(query.message, context)
 
 
 
@@ -306,6 +307,7 @@ def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(check_joined, pattern="check_joined"))
     app.add_handler(CallbackQueryHandler(button_handler))  # سب بٹن کلکس کو ایک ہی ہینڈل کرے گا
 
     print("🤖 Bot is running...")
