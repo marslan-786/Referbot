@@ -82,6 +82,29 @@ async def send_main_menu(update: Update):
             caption="A Free Radio Code - Welcome to Redeem Code",
             reply_markup=reply_markup
         )
+        
+admin_channels = []
+
+async def fetch_admin_channels(bot, required_channels):
+    global admin_channels
+    admin_channels = []
+    bot_user_id = (await bot.get_me()).id
+    for channel in required_channels:
+        try:
+            chat = await bot.get_chat(channel['link'])
+            admins = await bot.get_chat_administrators(chat.id)
+            is_admin = any(admin.user.id == bot_user_id for admin in admins)
+            if is_admin:
+                admin_channels.append(chat.id)
+                print(f"Bot is admin in: {channel['name']} ({chat.id})")
+        except Exception as e:
+            print(f"Error checking admin for {channel['name']}: {e}")
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global admin_channels
+    if not admin_channels:
+        await fetch_admin_channels(context.bot, REQUIRED_CHANNELS)
+    # باقی start کا کوڈ یہاں ہوگا...
 
 
 async def show_join_channels(update: Update):
