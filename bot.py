@@ -16,12 +16,12 @@ USER_DB_FILE = "user_db.json"
 
 # Channel configuration (replace with your actual channels)
 CHANNELS = [
-    {"name": "🔔 Channel 1", "url": "https://t.me/channel1"},
-    {"name": "📢 Channel 2", "url": "https://t.me/channel2"},
-    {"name": "📣 Channel 3", "url": "https://t.me/channel3"},
-    {"name": "🔊 Channel 4", "url": "https://t.me/channel4"},
-    {"name": "📡 Channel 5", "url": "https://t.me/channel5"},
-    {"name": "📻 Channel 6", "url": "https://t.me/channel6"}
+    {"name": "🔔 Channel 1", "url": "https://t.me/+ddWJ_3i9FKEwYzM9"},
+    {"name": "📢 Channel 2", "url": "https://t.me/+ggvGbpCytFU5NzQ1"},
+    {"name": "📣 Channel 3", "url": "https://t.me/Only_possible_world"},
+    {"name": "🔊 Channel 4", "url": "https://t.me/+dsm5id0xjLQyZjcx"},
+    {"name": "📡 Channel 5", "url": "https://t.me/+92ZkRWBBExhmNzY1"},
+    {"name": "📻 Channel 6", "url": "https://t.me/botsworldtar"}
 ]
 
 # Track user clicks for channel joining
@@ -85,9 +85,9 @@ def main_menu_keyboard():
 
 def withdraw_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("40 Points - Rs.200", callback_data='withdraw_40')],
-        [InlineKeyboardButton("70 Points - Rs.500", callback_data='withdraw_70')],
-        [InlineKeyboardButton("100 Points - Rs.1000", callback_data='withdraw_100')],
+        [InlineKeyboardButton("40 Points - Rs.200 Redeem Code", callback_data='withdraw_40')],
+        [InlineKeyboardButton("70 Points - Rs.500 Redeem Code", callback_data='withdraw_70')],
+        [InlineKeyboardButton("100 Points - Rs.1000 Redeem Code", callback_data='withdraw_100')],
         [InlineKeyboardButton("Back", callback_data='back_to_menu')]
     ])
 
