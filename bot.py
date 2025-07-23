@@ -1,304 +1,212 @@
 import os
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, Filters
 import json
-import logging
-from datetime import datetime
+import uuid
 
-from telegram import (
-    Update,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-)
-from telegram.constants import ParseMode
-from telegram.ext import (
-    ApplicationBuilder,
-    Application,
-    CommandHandler,
-    CallbackQueryHandler,
-    ContextTypes,
-)
+# Bot configuration
+TOKEN = "7902248899:AAHElm3aHJeP3IZiy2SN3jLAgV7ZwRXnvdo"
+LOGO_PATH = "logo.png"
 
-logging.basicConfig(level=logging.INFO)
+# User database file
+USER_DB_FILE = "user_db.json"
 
-# ---------- CONFIG ----------
-BOT_TOKEN = "7902248899:AAHElm3aHJeP3IZiy2SN3jLAgV7ZwRXnvdo"
+# Initialize user database
+def init_user_db():
+    if not os.path.exists(USER_DB_FILE):
+        with open(USER_DB_FILE, 'w') as f:
+            json.dump({}, f)
 
-OWNER_ID = 8003357608
-channel_cache = {}
-user_join_status = {}
-admin_channels = []  # global variable
-
-
-
-USER_FILE = "users.json"
-
-def load_users():
-    if not os.path.exists(USER_FILE):
-        return {}
-    with open(USER_FILE, "r") as f:
+# Load user database
+def load_user_db():
+    with open(USER_DB_FILE, 'r') as f:
         return json.load(f)
 
-def save_users(data):
-    with open(USER_FILE, "w") as f:
-        json.dump(data, f, indent=4)
-# ---------- UTILS ----------
-async def get_channel_id(bot, link: str) -> int:
-    if link in channel_cache:
-        return channel_cache[link]
-    chat = await bot.get_chat(link)
-    channel_cache[link] = chat.id
-    return chat.id
+# Save user database
+def save_user_db(db):
+    with open(USER_DB_FILE, 'w') as f:
+        json.dump(db, f)
 
-
-async def has_joined_all_channels(bot, user_id: int) -> (bool, list):
-    not_joined_channels = []
-
-    for channel in REQUIRED_CHANNELS:
-        try:
-            chat_id = await get_channel_id(bot, channel['link'])
-            member = await bot.get_chat_member(chat_id, user_id)
-            if member.status not in ['member', 'administrator', 'creator']:
-                not_joined_channels.append(channel['name'])
-        except Exception as e:
-            logging.warning(f"Error checking membership for {channel['name']}: {e}")
-            not_joined_channels.append(channel['name'])
-
-    return (len(not_joined_channels) == 0, not_joined_channels)
-
-
-# ---------- HANDLERS ----------
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # چینلز کے بٹن سیدھے InlineKeyboardButton میں دیے گئے ہیں، الگ لسٹ نہیں
-    buttons = [
-        [InlineKeyboardButton("📢 Channel 1", url="https://t.me/+ggvGbpCytFU5NzQ1"),
-         InlineKeyboardButton("📢 Channel 2", url="https://t.me/+dsm5id0xjLQyZjcx")],
-        [InlineKeyboardButton("📢 Channel 3", url="https://t.me/+92ZkRWBBExhmNzY1"),
-         InlineKeyboardButton("📢 Channel 4", url="https://t.me/botsworldtar")],
-        [InlineKeyboardButton("📢 Channel 5", url="https://t.me/+VCRRpYGKMz8xY2U0"),
-         InlineKeyboardButton("📢 Channel 6", url="https://t.me/+ddWJ_3i9FKEwYzM9")],
-        [InlineKeyboardButton("✅ Check Joined", callback_data="check_joined")]
-    ]
-
-    reply_markup = InlineKeyboardMarkup(buttons)
-
-    await update.message.reply_text(
-        "📢 Please join all the required channels to continue:",
-        reply_markup=reply_markup
-    )
-    
-import json
-import os
-
-# Path where the user check count JSON will be stored
-CHECK_COUNT_FILE = "user_check_count.json"
-
-# Load existing check counts from file
-if os.path.exists(CHECK_COUNT_FILE):
-    with open(CHECK_COUNT_FILE, "r") as f:
-        user_check_count = json.load(f)
-else:
-    user_check_count = {}
-
-# Helper to save the updated count
-def save_user_check_count():
-    with open(CHECK_COUNT_FILE, "w") as f:
-        json.dump(user_check_count, f)
-
-async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = str(query.from_user.id)
-    await query.answer()
-
-    # کلک گنتی ٹریک کریں
-    count = user_check_data.get(user_id, 0) + 1
-    user_check_data[user_id] = count
-    save_json("user_check_count.json", user_check_data)
-
-    if count == 1:
-        # پہلی بار: ایرر میسج دیں
-        await query.message.reply_text("❌ You have not joined all channels. Please join them and try again.")
-    else:
-        # دوسری بار یا اس کے بعد: مین مینیو دکھائیں
-        await query.message.delete()
-        await send_main_menu(query.message, context)
-
-async def send_main_menu(update_or_message, context: ContextTypes.DEFAULT_TYPE = None):
-    keyboard = [
-        [InlineKeyboardButton("👤 My Account", callback_data="my_account")],
-        [InlineKeyboardButton("👥 My Referrals", callback_data="my_referrals")],
-        [InlineKeyboardButton("📨 Invite Referral Link", callback_data="invite_referral")],
-        [InlineKeyboardButton("💵 Withdrawal", callback_data="withdrawal")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    photo_path = "banner.jpg"
-
-    if hasattr(update_or_message, "callback_query") and update_or_message.callback_query:
-        try:
-            await update_or_message.callback_query.message.delete()
-        except Exception as e:
-            print(f"Error deleting message in send_main_menu: {e}")
-        await context.bot.send_photo(
-            chat_id=update_or_message.callback_query.message.chat.id,
-            photo=open(photo_path, "rb"),
-            caption="🏠 Welcome to the Main Menu:",
-            reply_markup=reply_markup
-        )
-    else:
-        await update_or_message.reply_photo(
-            photo=open(photo_path, "rb"),
-            caption="🏠 Welcome to the Main Menu:",
-            reply_markup=reply_markup
-        )
-
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-    user_id = str(query.from_user.id)
-
-    with open("users.json", "r") as f:
-        users = json.load(f)
-
-    if data == "my_account":
-        if user_id not in users:
-            await query.answer("You are not registered.", show_alert=True)
-            return
-        user_data = users[user_id]
-        text = f"""👤 <b>My Account</b>
-
-🆔 <b>User ID:</b> <code>{user_id}</code>
-👤 <b>Username:</b> @{user_data.get("username", "N/A")}
-💰 <b>Balance:</b> {user_data.get("balance", 0)} PKR
-🔗 <b>Referral Code:</b> <code>{user_data.get("referral_code", "N/A")}</code>
-👥 <b>Total Referrals:</b> {len(user_data.get("referrals", []))}
-"""
-        keyboard = [[InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        try:
-            await query.message.delete()
-        except Exception as e:
-            print(f"Error deleting message in my_account: {e}")
-        await query.message.chat.send_message(text, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
-
-    elif data == "my_referrals":
-        if user_id not in users:
-            await query.answer("You are not registered.", show_alert=True)
-            return
-        user = users[user_id]
-        text = (
-            f"📢 *Your Referral Info:*\n\n"
-            f"🔗 *Referral Code:* `{user.get('referral_code', 'N/A')}`\n"
-            f"👥 *Total Referrals:* {len(user.get('referrals', []))}\n"
-            f"💰 *Referral Earnings:* {user.get('referral_earning', 0)} PKR\n"
-        )
-        keyboard = [[InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        try:
-            await query.message.delete()
-        except Exception as e:
-            print(f"Error deleting message in my_referrals: {e}")
-        await query.message.chat.send_photo(photo=open("banner.jpg", "rb"),
-                                          caption=text,
-                                          parse_mode=ParseMode.MARKDOWN,
-                                          reply_markup=reply_markup)
-
-    elif data == "invite_referral":
-        if user_id not in users:
-            await query.answer("You are not registered.", show_alert=True)
-            return
-        user = users[user_id]
-        bot_username = (await context.bot.get_me()).username
-        referral_link = f"https://t.me/{bot_username}?start={user.get('referral_code', 'N/A')}"
-        text = (
-            f"📩 *Invite Your Friends!*\n\n"
-            f"🔗 *Your Referral Link:*\n`{referral_link}`\n\n"
-            f"👥 When someone joins using your link, you'll earn bonus rewards.\n"
-        )
-        keyboard = [[InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        try:
-            await query.message.delete()
-        except Exception as e:
-            print(f"Error deleting message in invite_referral: {e}")
-        await query.message.chat.send_photo(photo=open("banner.jpg", "rb"),
-                                          caption=text,
-                                          parse_mode=ParseMode.MARKDOWN,
-                                          reply_markup=reply_markup)
-
-    elif data == "withdrawal":
-        if user_id not in users:
-            await query.answer("You are not registered.", show_alert=True)
-            return
-        points = users[user_id].get("points", 0)
-        text = (
-            f"💸 *Withdraw Menu*\n\n"
-            f"💰 Your Current Points: *{points}*\n\n"
-            f"Choose one of the options below to redeem your points:"
-        )
-        keyboard = [
-            [
-                InlineKeyboardButton("🎁 40 Points = Rs. 200", callback_data="withdraw_40"),
-                InlineKeyboardButton("🎁 70 Points = Rs. 500", callback_data="withdraw_70"),
-                InlineKeyboardButton("🎁 100 Points = Rs. 1000", callback_data="withdraw_100"),
-            ],
-            [InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        try:
-            await query.message.delete()
-        except Exception as e:
-            print(f"Error deleting message in withdrawal: {e}")
-        await query.message.chat.send_message(text, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
-
-    elif data.startswith("withdraw_"):
-        if user_id not in users:
-            await query.edit_message_text("⛔ You are not registered yet.")
-            return
-        user = users[user_id]
-        points = user.get("points", 0)
-        withdraw_map = {
-            "withdraw_40": (40, 200),
-            "withdraw_70": (70, 500),
-            "withdraw_100": (100, 1000),
+# Get or create user data
+def get_user_data(user_id):
+    db = load_user_db()
+    if str(user_id) not in db:
+        db[str(user_id)] = {
+            "points": 0,
+            "referrals": 0,
+            "referral_code": str(uuid.uuid4())[:8].upper()
         }
-        required_points, amount = withdraw_map.get(data, (None, None))
-        if required_points is None:
-            await query.edit_message_text("❌ Invalid option selected.")
-            return
-        if points < required_points:
-            await query.edit_message_text(f"🚫 You need *{required_points} points* to redeem Rs. {amount}.\nYou only have *{points} points*.",
-                                          parse_mode=ParseMode.MARKDOWN)
-            return
-        users[user_id]["points"] -= required_points
-        with open("users.json", "w") as f:
-            json.dump(users, f, indent=4)
-        await query.edit_message_text(
-            f"✅ Your request to redeem Rs. {amount} has been received.\n"
-            f"📤 Remaining Points: *{users[user_id]['points']}*\n\n"
-            f"👨‍💼 Our team will contact you soon for the payment.",
-            parse_mode=ParseMode.MARKDOWN
+        save_user_db(db)
+    return db[str(user_id)]
+
+# Update user data
+def update_user_data(user_id, data):
+    db = load_user_db()
+    db[str(user_id)] = data
+    save_user_db(db)
+
+# Handle referral
+def handle_referral(user_id, referrer_id):
+    db = load_user_db()
+    
+    # Update referrer's data
+    if str(referrer_id) in db:
+        db[str(referrer_id)]["referrals"] += 1
+        db[str(referrer_id)]["points"] += 2
+        save_user_db(db)
+
+# Start command handler
+def start(update: Update, context: CallbackContext) -> None:
+    user_id = update.effective_user.id
+    user_data = get_user_data(user_id)
+    
+    # Check if this is a referral
+    if context.args and context.args[0].startswith('ref'):
+        referrer_code = context.args[0][3:]
+        db = load_user_db()
+        referrer_id = next((uid for uid, data in db.items() if data["referral_code"] == referrer_code), None)
+        
+        if referrer_id and referrer_id != str(user_id):
+            handle_referral(user_id, referrer_id)
+    
+    # Send welcome message
+    with open(LOGO_PATH, 'rb') as logo:
+        update.message.reply_photo(
+            photo=logo,
+            caption="Welcome to Google Play Redeem Code Bot",
+            reply_markup=main_menu_keyboard()
         )
 
-    elif data == "back_to_menu":
-        await send_main_menu(update)
+# Main menu keyboard
+def main_menu_keyboard():
+    keyboard = [
+        [InlineKeyboardButton("My Account", callback_data='my_account')],
+        [InlineKeyboardButton("My Referrals", callback_data='my_referrals')],
+        [InlineKeyboardButton("Invite Referrals", callback_data='invite_referrals')],
+        [InlineKeyboardButton("Withdraw", callback_data='withdraw')]
+    ]
+    return InlineKeyboardMarkup(keyboard)
 
-    else:
-        await query.answer("Unknown action!")
+# Button callback handler
+def button(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+    user_id = query.from_user.id
+    user_data = get_user_data(user_id)
+    
+    query.answer()
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await send_main_menu(update)
+    if query.data == 'my_account':
+        account_details = (
+            f"📊 Account Details\n\n"
+            f"🪙 Points: {user_data['points']}\n"
+            f"👥 Referrals: {user_data['referrals']}"
+        )
+        query.edit_message_text(
+            text=account_details,
+            reply_markup=back_to_menu_keyboard()
+        )
+    elif query.data == 'my_referrals':
+        referrals_text = (
+            f"👥 Your Referrals\n\n"
+            f"Total Referrals: {user_data['referrals']}"
+        )
+        query.edit_message_text(
+            text=referrals_text,
+            reply_markup=back_to_menu_keyboard()
+        )
+    elif query.data == 'invite_referrals':
+        invite_text = (
+            f"📨 Invite Friends\n\n"
+            f"Share your referral link and earn 2 points for each successful referral:\n\n"
+            f"https://t.me/{context.bot.username}?start=ref{user_data['referral_code']}\n\n"
+            f"Each referral earns you 2 points!"
+        )
+        query.edit_message_text(
+            text=invite_text,
+            reply_markup=back_to_menu_keyboard()
+        )
+    elif query.data == 'withdraw':
+        query.edit_message_text(
+            text=f"💰 Withdraw Points\n\nCurrent Points: {user_data['points']}\nSelect an option:",
+            reply_markup=withdraw_keyboard()
+        )
+    elif query.data == 'withdraw_40':
+        if user_data['points'] >= 40:
+            user_data['points'] -= 40
+            update_user_data(user_id, user_data)
+            query.edit_message_text(
+                text="🎉 You've redeemed 200 RS Google Play Code!",
+                reply_markup=back_to_menu_keyboard()
+            )
+        else:
+            query.edit_message_text(
+                text="❌ Error: You need at least 40 points to withdraw",
+                reply_markup=withdraw_keyboard()
+            )
+    elif query.data == 'withdraw_70':
+        if user_data['points'] >= 70:
+            user_data['points'] -= 70
+            update_user_data(user_id, user_data)
+            query.edit_message_text(
+                text="🎉 You've redeemed 500 RS Google Play Code!",
+                reply_markup=back_to_menu_keyboard()
+            )
+        else:
+            query.edit_message_text(
+                text="❌ Error: You need at least 70 points to withdraw",
+                reply_markup=withdraw_keyboard()
+            )
+    elif query.data == 'withdraw_100':
+        if user_data['points'] >= 100:
+            user_data['points'] -= 100
+            update_user_data(user_id, user_data)
+            query.edit_message_text(
+                text="🎉 You've redeemed 1000 RS Google Play Code!",
+                reply_markup=back_to_menu_keyboard()
+            )
+        else:
+            query.edit_message_text(
+                text="❌ Error: You need at least 100 points to withdraw",
+                reply_markup=withdraw_keyboard()
+            )
+    elif query.data == 'back_to_menu':
+        with open(LOGO_PATH, 'rb') as logo:
+            query.message.reply_photo(
+                photo=logo,
+                caption="Welcome to Google Play Redeem Code Bot",
+                reply_markup=main_menu_keyboard()
+            )
+            query.delete_message()
 
-def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+# Withdraw keyboard
+def withdraw_keyboard():
+    keyboard = [
+        [InlineKeyboardButton("40 Points - 200 RS", callback_data='withdraw_40')],
+        [InlineKeyboardButton("70 Points - 500 RS", callback_data='withdraw_70')],
+        [InlineKeyboardButton("100 Points - 1000 RS", callback_data='withdraw_100')],
+        [InlineKeyboardButton("Back to Menu", callback_data='back_to_menu')]
+    ]
+    return InlineKeyboardMarkup(keyboard)
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(check_joined, pattern="check_joined"))
-    app.add_handler(CallbackQueryHandler(button_handler))  # سب بٹن کلکس کو ایک ہی ہینڈل کرے گا
+# Back to menu keyboard
+def back_to_menu_keyboard():
+    keyboard = [
+        [InlineKeyboardButton("Back to Menu", callback_data='back_to_menu')]
+    ]
+    return InlineKeyboardMarkup(keyboard)
 
-    print("🤖 Bot is running...")
-    app.run_polling()
+def main() -> None:
+    # Initialize user database
+    init_user_db()
+    
+    updater = Updater(TOKEN)
+    dispatcher = updater.dispatcher
 
-if __name__ == "__main__":
+    dispatcher.add_handler(CommandHandler('start', start))
+    dispatcher.add_handler(CallbackQueryHandler(button))
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == '__main__':
     main()
