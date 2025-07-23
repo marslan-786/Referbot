@@ -143,20 +143,28 @@ from telegram.ext import ContextTypes
 async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     data = context.user_data
+    query = update.callback_query
+    await query.answer()
 
     if not data.get("has_seen_error"):
         data["has_seen_error"] = True
-        await update.callback_query.answer()
-        await update.callback_query.message.reply_text("❌ Please first join all required channels before proceeding.")
+        await query.message.reply_text("❌ Please first join all required channels before proceeding.")
     else:
         try:
-            # Try to delete the old join message (if exists)
-            await update.callback_query.message.delete()
-        except Exception as e:
-            print(f"Error deleting message: {e}")
+            await query.message.delete()
+        except:
+            pass
+        await send_main_menu(context.bot, query.message.chat_id)
 
-        # Now send the main menu
-        await send_main_menu(update)
+async def send_main_menu(bot, chat_id):
+    keyboard = [
+        [InlineKeyboardButton("👤 My Account", callback_data="my_account_handler")],
+        [InlineKeyboardButton("👥 My Referrals", callback_data="my_referrals_handler")],
+        [InlineKeyboardButton("📨 Invite Referral Link", callback_data="invite_referral_handler")],
+        [InlineKeyboardButton("💵 Withdrawal", callback_data="redeem_handler")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await bot.send_message(chat_id=chat_id, text="🏠 Welcome to the Main Menu:", reply_markup=reply_markup)
         
         
 async def my_referrals_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -324,20 +332,6 @@ def redeem_handler(update: Update, context: CallbackContext):
 
     query.edit_message_text(reward_text + "\n\n✅ Our team will contact you soon with your code.\n\n🔙 You can go back to the menu anytime.")
     
-async def send_main_menu(update: Update):
-    keyboard = [
-        [InlineKeyboardButton("👤 My Account", callback_data="my_account")],
-        [InlineKeyboardButton("👥 My Referrals", callback_data="my_referrals")],
-        [InlineKeyboardButton("📨 Invite Referral Link", callback_data="invite_referral")],
-        [InlineKeyboardButton("💵 Withdrawal", callback_data="withdraw")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    if update.message:
-        await update.message.reply_text("🏠 Welcome to the Main Menu:", reply_markup=reply_markup)
-    else:
-        await update.callback_query.message.edit_text("🏠 Welcome to the Main Menu:", reply_markup=reply_markup)
-        
         
 async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_main_menu(update)
