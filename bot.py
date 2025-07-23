@@ -50,24 +50,23 @@ async def has_joined_all_channels(bot, user_id: int) -> (bool, list):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
 
-    if not admin_channels:
-        await fetch_admin_channels(context.bot, REQUIRED_CHANNELS)
-
+    # اگر اونر ہے، تو سب کچھ سکپ کرو اور مین مینیو دکھاؤ
     if user.id == OWNER_ID:
-        # Owner کو سیدھا مین مینیو بھیج دو
         await send_main_menu(update)
         return
 
+    # اگر admin_channels list خالی ہے تو چینلز fetch کرو
+    if not admin_channels:
+        await fetch_admin_channels(context.bot, REQUIRED_CHANNELS)
+
+    # چیک کرو user نے سب چینلز join کیے ہیں یا نہیں
     joined_all = await check_user_joined_all(context.bot, user.id)
 
     if not joined_all:
-        # چینلز جوائن کروانے والا میسج + بٹن + بینر
         await show_join_channels(update)
     else:
-        # مین مینیو شو کرو
         await send_main_menu(update)
-
-
+        
 async def send_main_menu(update: Update):
     keyboard = [
         [InlineKeyboardButton("My Account", callback_data="my_account")],
@@ -76,11 +75,13 @@ async def send_main_menu(update: Update):
         [InlineKeyboardButton("Withdrawal", callback_data="withdrawal")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
+
     with open("banner.jpg", "rb") as photo:
-        await update.message.reply_photo(
+        await update.effective_message.reply_photo(
             photo=photo,
-            caption="A Free Radio Code - Welcome to Redeem Code",
-            reply_markup=reply_markup
+            caption="🎉 *A Free Radio Code* - Welcome to Redeem Code!",
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
         )
         
 admin_channels = []
