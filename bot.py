@@ -141,7 +141,6 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
     data = context.user_data
     query = update.callback_query
     await query.answer()
@@ -150,12 +149,14 @@ async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data["has_seen_error"] = True
         await query.message.reply_text("❌ Please first join all required channels before proceeding.")
     else:
+        # صرف میسج ڈیلیٹ کرنے کی کوشش کریں، اگر ہو سکے
         try:
             await query.message.delete()
-        except:
-            pass
-        # یہاں آپ 'update' ہی پاس کریں، جو کہ CallbackQueryUpdate ہے
+        except Exception as e:
+            print(f"Message delete error in check_joined: {e}")
+
         await send_main_menu(update)
+
 
 async def send_main_menu(update: Update):
     keyboard = [
@@ -166,14 +167,24 @@ async def send_main_menu(update: Update):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    photo_path = "banner.jpg"  # آپ کا بینر پکچر کا فائل نیم اور لوکیشن
+    photo_path = "banner.jpg"
 
     if update.message:
         await update.message.reply_photo(photo=open(photo_path, "rb"), caption="🏠 Welcome to the Main Menu:", reply_markup=reply_markup)
-    else:
-        # اگر کال بیک ہے تو نیا میسج بھیجیں (edit_message_media تھوڑا پیچیدہ ہے)
-        await update.callback_query.message.delete()  # پہلے موجودہ میسج ڈیلیٹ کریں
+    elif update.callback_query:
+        # پہلے میسج ڈیلیٹ کرنے کی کوشش کریں لیکن error کو ignore کریں اگر ہو جائے تو
+        try:
+            await update.callback_query.message.delete()
+        except Exception as e:
+            print(f"Message delete error in send_main_menu: {e}")
+
         await update.callback_query.message.chat.send_photo(photo=open(photo_path, "rb"), caption="🏠 Welcome to the Main Menu:", reply_markup=reply_markup)
+    else:
+        print("Neither message nor callback_query found in update.")
+
+
+# یہ بھی چیک کریں کہ آپ کا handler 'check_joined' کے لیے صحیح طریقے سے لگا ہوا ہے:
+# app.add_handler(CallbackQueryHandler(check_joined, pattern="^check_joined$"))
         
         
 async def my_account_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
