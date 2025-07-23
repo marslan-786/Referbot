@@ -267,31 +267,6 @@ async def invite_referral_handler(update: Update, context: ContextTypes.DEFAULT_
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 
-def withdrawal_handler(update: Update, context: CallbackContext):
-    query = update.callback_query
-    user_id = str(query.from_user.id)
-
-    # Read user.json to get points
-    import json
-    try:
-        with open("user.json", "r") as f:
-            users = json.load(f)
-        points = users.get(user_id, {}).get("points", 0)
-    except:
-        points = 0
-
-    # Message
-    text = f"💰 Your Current Points: {points}\n\nSelect your withdrawal option:"
-
-    keyboard = [
-        [InlineKeyboardButton("💳 40 Points – Rs.200 Code", callback_data="redeem_40")],
-        [InlineKeyboardButton("💳 70 Points – Rs.500 Code", callback_data="redeem_70")],
-        [InlineKeyboardButton("💳 100 Points – Rs.1000 Code", callback_data="redeem_100")],
-        [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
-    ]
-
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text(text=text, reply_markup=reply_markup)
     
 def redeem_handler(update: Update, context: CallbackContext):
     query = update.callback_query
@@ -340,13 +315,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
 
-    if data == "my_account":
+    if data == "my_account_handler":
         await my_account_handler(update, context)
 
-    elif data == "my_referrals":
+    elif data == "my_referrals_handler":
         await my_referrals_handler(update, context)
 
-    elif data == "invite_referral":
+    elif data == "invite_referral_handler":
         await invite_referral_handler(update, context)
 
     elif data == "back_to_menu":
