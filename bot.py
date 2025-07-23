@@ -21,6 +21,21 @@ channel_cache = {}
 user_join_status = {}
 admin_channels = []  # global variable
 
+
+import json
+import os
+
+USER_FILE = "users.json"
+
+def load_users():
+    if not os.path.exists(USER_FILE):
+        return {}
+    with open(USER_FILE, "r") as f:
+        return json.load(f)
+
+def save_users(data):
+    with open(USER_FILE, "w") as f:
+        json.dump(data, f, indent=4)
 # ---------- UTILS ----------
 async def get_channel_id(bot, link: str) -> int:
     if link in channel_cache:
@@ -49,41 +64,51 @@ async def has_joined_all_channels(bot, user_id: int) -> (bool, list):
 # ---------- HANDLERS ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+    text = update.message.text  # /start or /start referralcode
 
-    # ✅ اگر اونر ہے → سیدھا مینیو، کچھ بھی چیک مت کرو
+    users = load_users()
+
+    # ریفرل کوڈ نکالیں اگر کوئی ہو
+    referral_code = None
+    if text and len(text.split()) > 1:
+        referral_code = text.split()[1]
+
+    # اونر کے لیے فوراً مین مینیو شو کرو اور ریفرل چیک نہ کرو
     if user.id == OWNER_ID:
         await send_main_menu(update)
         return
 
-    # ✅ صرف نارمل users کے لیے admin_channels چیک کرو
+    # اگر ریفرل کوڈ ہے اور ریفرر موجود ہے، تو اس کا ریفرل کاؤنٹ اور پوائنٹس بڑھائیں
+    if referral_code:
+        referrer_id = referral_code
+        if referrer_id != str(user.id):  # خود کو ریفر نہ کرے یوزر
+            # اگر ریفرر یوزر موجود نہیں تو نیا بنائیں
+            if referrer_id not in users:
+                users[referrer_id] = {"referrals": [], "points": 0}
+
+            # اگر پہلے ریفر نہیں کیا تو ایڈ کریں
+            if str(user.id) not in users[referrer_id]["referrals"]:
+                users[referrer_id]["referrals"].append(str(user.id))
+                users[referrer_id]["points"] += 2  # ریفرل پوائنٹس
+
+                # یوزر کو بھی اپنی ڈیٹا فائل میں شامل کریں اگر نہیں ہے
+                if str(user.id) not in users:
+                    users[str(user.id)] = {"referrals": [], "points": 0}
+
+                save_users(users)
+
+    # باقی چینلز ایڈمن چیک اور جوائننگ چیک
     global admin_channels
     if not admin_channels:
         await fetch_admin_channels(context.bot, REQUIRED_CHANNELS)
 
-    # ✅ پھر جوائن چیک کرو
     joined_all, _ = await has_joined_all_channels(context.bot, user.id)
 
     if not joined_all:
         await show_join_channels(update)
-    else:
-        await send_main_menu(update)
-        
-async def send_main_menu(update: Update):
-    keyboard = [
-        [InlineKeyboardButton("My Account", callback_data="my_account")],
-        [InlineKeyboardButton("My Referrals", callback_data="my_referrals")],
-        [InlineKeyboardButton("Invite Referral Code", callback_data="invite_referral")],
-        [InlineKeyboardButton("Withdrawal", callback_data="withdrawal")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+        return
 
-    with open("banner.jpg", "rb") as photo:
-        await update.effective_message.reply_photo(
-            photo=photo,
-            caption="🎉 *A Free Radio Code* - Welcome to Redeem Code!",
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
+    await send_main_menu(update)
         
 admin_channels = []
 
@@ -140,18 +165,48 @@ async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_caption("🎉 You have joined all required channels!")
         
         
+async def my_referrals_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = str(query.from_user.id)
 
-# فرض کرتے ہیں کہ یوزر کا بیلنس اور ریفرلز کہیں سے فچ کرنے کا فنکشن ہے
-# یہاں مثال کے طور پر ہارڈ کوڈ ویلیوز دے رہا ہوں، آپ ڈیٹا بیس یا دوسرے ذریعے سے لے سکتے ہیں
+    users = load_users()
+
+    if user_id not in users:
+        referrals = []
+        points = 0
+    else:
+        referrals = users[user_id].get("referrals", [])
+        points = users[user_id].get("points", 0)
+
+    referrals_count = len(referrals)
+
+    text = f"👥 You have {referrals_count} referral(s).\n"
+    if referrals_count > 0:
+        # ریفرلز کی IDs یا یوزر نیم دکھائیں (جتنے چاہیں)
+        text += "🔗 Your Referrals:\n" + "\n".join(referrals) + "\n\n"
+    text += f"💰 Your total points: {points}"
+
+    keyboard = [
+        [InlineKeyboardButton("⬅️ Back", callback_data="back_to_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.edit_message_caption(caption=text, reply_markup=reply_markup)
 
 async def my_account_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    user = query.from_user
+    user_id = str(query.from_user.id)
 
-    # Example user data (replace with real data fetching)
-    user_balance = 150  # example points
-    user_referrals = 5  # example referral count
-    min_withdrawal = 40
+    users = load_users()
+
+    if user_id not in users:
+        user_balance = 0
+        user_referrals = 0
+        min_withdrawal = 40
+    else:
+        user_balance = users[user_id].get("points", 0)
+        user_referrals = len(users[user_id].get("referrals", []))
+        min_withdrawal = 40  # آپ اپنی مرضی سے بدل سکتے ہیں
 
     text = (
         f"📊 Your Account Info:\n\n"
@@ -167,39 +222,115 @@ async def my_account_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await query.edit_message_caption(caption=text, reply_markup=reply_markup)
     
+async def invite_referral_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = query.from_user.id
+
+    bot_user = await context.bot.get_me()
+    bot_username = bot_user.username  # خودکار بوٹ یوزرنیم
+
+    referral_link = f"https://t.me/{bot_username}?start={user_id}"
+
+    text = (
+        f"🎯 Your Invite Referral Link:\n\n"
+        f"{referral_link}\n\n"
+        f"Share this link with your friends to earn points!"
+    )
+
+    keyboard = [
+        [InlineKeyboardButton("⬅️ Back", callback_data="back_to_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.edit_message_caption(caption=text, reply_markup=reply_markup)
+    
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import CallbackContext
+
+def withdrawal_handler(update: Update, context: CallbackContext):
+    query = update.callback_query
+    user_id = str(query.from_user.id)
+
+    # Read user.json to get points
+    import json
+    try:
+        with open("user.json", "r") as f:
+            users = json.load(f)
+        points = users.get(user_id, {}).get("points", 0)
+    except:
+        points = 0
+
+    # Message
+    text = f"💰 Your Current Points: {points}\n\nSelect your withdrawal option:"
+
+    keyboard = [
+        [InlineKeyboardButton("💳 40 Points – Rs.200 Code", callback_data="redeem_40")],
+        [InlineKeyboardButton("💳 70 Points – Rs.500 Code", callback_data="redeem_70")],
+        [InlineKeyboardButton("💳 100 Points – Rs.1000 Code", callback_data="redeem_100")],
+        [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    query.edit_message_text(text=text, reply_markup=reply_markup)
+    
+def redeem_handler(update: Update, context: CallbackContext):
+    query = update.callback_query
+    user_id = str(query.from_user.id)
+    data = query.data
+
+    import json
+    try:
+        with open("user.json", "r") as f:
+            users = json.load(f)
+    except:
+        users = {}
+
+    points = users.get(user_id, {}).get("points", 0)
+
+    required_points = 0
+    reward_text = ""
+
+    if data == "redeem_40":
+        required_points = 40
+        reward_text = "🎁 You have successfully redeemed Rs.200 Code!"
+    elif data == "redeem_70":
+        required_points = 70
+        reward_text = "🎁 You have successfully redeemed Rs.500 Code!"
+    elif data == "redeem_100":
+        required_points = 100
+        reward_text = "🎁 You have successfully redeemed Rs.1000 Code!"
+
+    if points < required_points:
+        query.answer("❌ Insufficient Points", show_alert=True)
+        query.edit_message_text("🚫 You don’t have enough points to withdraw this reward.\n\n👉 Please complete referrals to earn more points.")
+        return
+
+    # Deduct points
+    users[user_id]["points"] -= required_points
+    with open("user.json", "w") as f:
+        json.dump(users, f, indent=4)
+
+    query.edit_message_text(reward_text + "\n\n✅ Our team will contact you soon with your code.\n\n🔙 You can go back to the menu anytime.")
     
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
 
     if data == "my_account":
-        # Handle My Account button
-        user_balance = 150
-        user_referrals = 5
-        min_withdrawal = 40
-        text = (
-            f"📊 Your Account Info:\n\n"
-            f"💰 Balance: {user_balance} points\n"
-            f"👥 Referrals: {user_referrals}\n\n"
-            f"Minimum Withdrawal: {min_withdrawal} points"
-        )
-        keyboard = [[InlineKeyboardButton("⬅️ Back", callback_data="back_to_menu")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_caption(caption=text, reply_markup=reply_markup)
+        await my_account_handler(update, context)
+
+    elif data == "my_referrals":
+        await my_referrals_handler(update, context)
+
+    elif data == "invite_referral":
+        await invite_referral_handler(update, context)
 
     elif data == "back_to_menu":
-        # Show main menu again (banner + 4 buttons)
-        await send_main_menu(update)  # آپ کا main menu function جو بنائیں گے
-
-    # مزید بٹن یہاں add کریں جیسے:
-    # elif data == "my_referrals":
-    #     # Handle my referrals button
+        await query.message.delete()
+        await send_main_menu(update)
 
     else:
         await query.answer("Unknown action!")
-
-# پھر اس handler کو add کریں
-
 
 
 # ---------- MAIN ----------
@@ -209,6 +340,9 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(check_joined, pattern="^check_joined$"))
     app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(CallbackQueryHandler(withdrawal_handler, pattern="^withdraw$"))
+    app.add_handler(CallbackQueryHandler(main_menu_handler, pattern="^main_menu$"))
+    app.add_handler(CallbackQueryHandler(redeem_handler, pattern="^redeem_"))
 
     print("🤖 Bot is running...")
     app.run_polling()
