@@ -74,39 +74,66 @@ async def has_joined_all_channels(bot, user_id: int) -> (bool, list):
 
 
 # ---------- HANDLERS ----------
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputFile
+from telegram import Update
+from telegram.ext import ContextTypes
+from datetime import datetime
+
+REQUIRED_CHANNELS = [
+    {"name": "Channel 1", "link": "https://t.me/+92ZkRWBBExhmNzY1"},
+    {"name": "Channel 2", "link": "https://t.me/+dsm5id0xjLQyZjcx"},
+    {"name": "Channel 3", "link": "https://t.me/+ggvGbpCytFU5NzQ1"},
+    {"name": "Channel 4", "link": "https://t.me/+ddWJ_3i9FKEwYzM9"},
+    {"name": "Channel 5", "link": "https://t.me/+VCRRpYGKMz8xY2U0"},
+    {"name": "Channel 6", "link": "https://t.me/botsworldtar"},
+]
+
+users_data = {}  # فرض کریں کہ یہ کہیں لوڈ کیا گیا ہے
+def save_json(filename, data):
+    import json
+    with open(filename, "w") as f:
+        json.dump(data, f, indent=4)
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = str(user.id)
 
-    # Load or create user
+    # Load or create user data (یہاں فرض ہے users_data پہلے سے لوڈ ہے)
     if user_id not in users_data:
         users_data[user_id] = {
             "referrer": None,
             "invited": 0,
             "joined_at": datetime.utcnow().isoformat()
         }
+        save_json("users.json", users_data)
 
-    # Save user data
-    save_json("users.json", users_data)
-
-    # Dynamically build channel buttons from REQUIRED_CHANNELS
+    # Build keyboard buttons for each channel from REQUIRED_CHANNELS
     keyboard = []
+    temp_row = []
     for i, channel in enumerate(REQUIRED_CHANNELS, start=1):
-        keyboard.append([
-            InlineKeyboardButton(f"📢 Join {channel['name']}", url=channel['link'])
-        ])
+        temp_row.append(InlineKeyboardButton(channel["name"], url=channel["link"]))
+        # 2 buttons per row
+        if i % 2 == 0:
+            keyboard.append(temp_row)
+            temp_row = []
+    if temp_row:
+        keyboard.append(temp_row)
 
-    # Add the "I've Joined" button
-    keyboard.append([
-        InlineKeyboardButton("✅ I've Joined", callback_data="check_joined")
-    ])
+    # Add "I've Joined" button in a new row
+    keyboard.append([InlineKeyboardButton("✅ I've Joined", callback_data="check_joined")])
 
-    # Send welcome message with channel join menu
-    await update.message.reply_photo(
-        photo=InputFile("banner.jpg"),
-        caption="👋 Welcome! Please join all the required channels below to continue:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    # Send banner photo with buttons
+    try:
+        with open("banner.jpg", "rb") as photo:
+            await update.message.reply_photo(
+                photo=photo,
+                caption="👇 Please join all required channels below to continue:",
+                reply_markup=reply_markup
+            )
+    except Exception as e:
+        print(f"Error sending banner photo: {e}")
 
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
