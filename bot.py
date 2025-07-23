@@ -1,20 +1,18 @@
 import os
 import json
 import uuid
-import asyncio
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     CallbackQueryHandler,
-    ContextTypes,
-    MessageHandler,
-    filters
+    ContextTypes
 )
 
 # Bot configuration
-TOKEN = os.getenv('BOT_TOKEN')  # Environment variable سے ٹوکن لیں
-LOGO_PATH = "logo.png"
+TOKEN = os.getenv('BOT_TOKEN')
+LOGO_PATH = "logo.png"  # Main logo
+BANNER_PATH = "banner.png"  # Banner for all menus
 USER_DB_FILE = "user_db.json"
 
 # Initialize user database
@@ -58,30 +56,43 @@ def handle_referral(user_id, referrer_id):
         db[referrer_id_str]["points"] += 2
         save_user_db(db)
 
-# Main menu keyboard
+# Menu keyboards
 def main_menu_keyboard():
-    keyboard = [
+    return InlineKeyboardMarkup([
         [InlineKeyboardButton("My Account", callback_data='my_account')],
         [InlineKeyboardButton("My Referrals", callback_data='my_referrals')],
         [InlineKeyboardButton("Invite Friends", callback_data='invite_friends')],
         [InlineKeyboardButton("Withdraw", callback_data='withdraw')]
-    ]
-    return InlineKeyboardMarkup(keyboard)
+    ])
 
-# Withdraw keyboard
 def withdraw_keyboard():
-    keyboard = [
+    return InlineKeyboardMarkup([
         [InlineKeyboardButton("40 Points - 200 RS", callback_data='withdraw_40')],
         [InlineKeyboardButton("70 Points - 500 RS", callback_data='withdraw_70')],
         [InlineKeyboardButton("100 Points - 1000 RS", callback_data='withdraw_100')],
         [InlineKeyboardButton("Back to Menu", callback_data='back_to_menu')]
-    ]
-    return InlineKeyboardMarkup(keyboard)
+    ])
 
-# Back to menu keyboard
 def back_to_menu_keyboard():
-    keyboard = [[InlineKeyboardButton("Back to Menu", callback_data='back_to_menu')]]
-    return InlineKeyboardMarkup(keyboard)
+    return InlineKeyboardMarkup([[InlineKeyboardButton("Back to Menu", callback_data='back_to_menu')]])
+
+# Send message with banner
+async def send_menu_with_banner(chat_id, context, caption, reply_markup):
+    try:
+        with open(BANNER_PATH, 'rb') as banner:
+            await context.bot.send_photo(
+                chat_id=chat_id,
+                photo=banner,
+                caption=caption,
+                reply_markup=reply_markup
+            )
+    except Exception as e:
+        print(f"Banner Error: {e}")
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=caption,
+            reply_markup=reply_markup
+        )
 
 # Start command handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -98,19 +109,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if referrer_id and referrer_id != str(user_id):
             handle_referral(user_id, int(referrer_id))
     
-    try:
-        with open(LOGO_PATH, 'rb') as logo:
-            await update.message.reply_photo(
-                photo=logo,
-                caption="Welcome to Google Play Redeem Code Bot",
-                reply_markup=main_menu_keyboard()
-            )
-    except Exception as e:
-        print(f"Start Error: {e}")
-        await update.message.reply_text(
-            "Welcome to Google Play Redeem Code Bot",
-            reply_markup=main_menu_keyboard()
-        )
+    await send_menu_with_banner(
+        update.message.chat_id,
+        context,
+        "Welcome to Google Play Redeem Code Bot",
+        main_menu_keyboard()
+    )
 
 # Button callback handler
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -119,7 +123,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
         
     await query.answer()
-    
     user_id = query.from_user.id
     user_data = get_user_data(user_id)
 
@@ -130,11 +133,23 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 f"🪙 Points: {user_data['points']}\n"
                 f"👥 Referrals: {user_data['referrals']}"
             )
-            await safe_edit_message(query, text, back_to_menu_keyboard())
+            await send_menu_with_banner(
+                query.message.chat_id,
+                context,
+                text,
+                back_to_menu_keyboard()
+            )
+            await query.delete_message()
             
         elif query.data == 'my_referrals':
             text = f"👥 Your Referrals\n\nTotal Referrals: {user_data['referrals']}"
-            await safe_edit_message(query, text, back_to_menu_keyboard())
+            await send_menu_with_banner(
+                query.message.chat_id,
+                context,
+                text,
+                back_to_menu_keyboard()
+            )
+            await query.delete_message()
             
         elif query.data == 'invite_friends':
             text = (
@@ -142,78 +157,63 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 f"https://t.me/{context.bot.username}?start=ref{user_data['referral_code']}\n\n"
                 f"Each referral earns you 2 points!"
             )
-            await safe_edit_message(query, text, back_to_menu_keyboard())
+            await send_menu_with_banner(
+                query.message.chat_id,
+                context,
+                text,
+                back_to_menu_keyboard()
+            )
+            await query.delete_message()
             
         elif query.data == 'withdraw':
             text = f"💰 Withdraw Points\n\nCurrent Points: {user_data['points']}\nSelect an option:"
-            await safe_edit_message(query, text, withdraw_keyboard())
+            await send_menu_with_banner(
+                query.message.chat_id,
+                context,
+                text,
+                withdraw_keyboard()
+            )
+            await query.delete_message()
             
         elif query.data == 'withdraw_40':
             if user_data['points'] >= 40:
                 user_data['points'] -= 40
                 update_user_data(user_id, user_data)
-                await safe_edit_message(query, "🎉 You've redeemed 200 RS Google Play Code!", back_to_menu_keyboard())
+                text = "🎉 You've redeemed 200 RS Google Play Code!"
             else:
-                await safe_edit_message(query, "❌ Error: You need at least 40 points", withdraw_keyboard())
-                
+                text = "❌ Error: You need at least 40 points"
+            await send_menu_with_banner(
+                query.message.chat_id,
+                context,
+                text,
+                back_to_menu_keyboard() if user_data['points'] >= 40 else withdraw_keyboard()
+            )
+            await query.delete_message()
+            
         elif query.data == 'back_to_menu':
-            try:
-                with open(LOGO_PATH, 'rb') as logo:
-                    await query.message.reply_photo(
-                        photo=logo,
-                        caption="Welcome to Google Play Redeem Code Bot",
-                        reply_markup=main_menu_keyboard()
-                    )
-                    await query.delete_message()
-            except Exception as e:
-                print(f"Back to Menu Error: {e}")
-                await query.message.reply_text(
-                    "Welcome to Google Play Redeem Code Bot",
-                    reply_markup=main_menu_keyboard()
-                )
-                
+            await send_menu_with_banner(
+                query.message.chat_id,
+                context,
+                "Welcome to Google Play Redeem Code Bot",
+                main_menu_keyboard()
+            )
+            await query.delete_message()
+            
     except Exception as e:
         print(f"Button Error: {e}")
         await query.message.reply_text("An error occurred. Please try /start again.")
 
-# Safe message edit function
-async def safe_edit_message(query, text, reply_markup=None):
-    try:
-        await query.edit_message_text(
-            text=text,
-            reply_markup=reply_markup
-        )
-    except Exception as e:
-        print(f"Edit Message Error: {e}")
-        await query.message.reply_text(
-            text,
-            reply_markup=reply_markup
-        )
-        await query.delete_message()
-
 def main() -> None:
-    # Initialize database
     init_user_db()
-    
-    # Create application with proper configuration
     application = ApplicationBuilder() \
         .token(TOKEN) \
         .concurrent_updates(True) \
-        .http_version("1.1") \
-        .get_updates_http_version("1.1") \
         .build()
     
-    # Add handlers
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CallbackQueryHandler(button))
     
-    # Run application with error handling
-    try:
-        application.run_polling()
-    except Exception as e:
-        print(f"Application Error: {e}")
-    finally:
-        print("Bot stopped")
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
