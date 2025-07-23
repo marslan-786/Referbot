@@ -76,7 +76,8 @@ async def has_joined_all_channels(bot, user_id: int) -> (bool, list):
 # ---------- HANDLERS ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    text = update.message.text  # /start or /start referralcode
+    message = update.message or update.effective_message  # fallback
+    text = message.text if message else ""  # /start or /start referralcode
 
     users = load_users()
 
