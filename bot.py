@@ -50,17 +50,18 @@ async def has_joined_all_channels(bot, user_id: int) -> (bool, list):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
 
-    # اگر اونر ہے، تو سب کچھ سکپ کرو اور مین مینیو دکھاؤ
+    # ✅ اگر اونر ہے → سیدھا مینیو، کچھ بھی چیک مت کرو
     if user.id == OWNER_ID:
         await send_main_menu(update)
         return
 
-    # اگر admin_channels list خالی ہے تو چینلز fetch کرو
+    # ✅ صرف نارمل users کے لیے admin_channels چیک کرو
+    global admin_channels
     if not admin_channels:
         await fetch_admin_channels(context.bot, REQUIRED_CHANNELS)
 
-    # چیک کرو user نے سب چینلز join کیے ہیں یا نہیں
-    joined_all = await check_user_joined_all(context.bot, user.id)
+    # ✅ پھر جوائن چیک کرو
+    joined_all, _ = await has_joined_all_channels(context.bot, user.id)
 
     if not joined_all:
         await show_join_channels(update)
@@ -100,12 +101,6 @@ async def fetch_admin_channels(bot, required_channels):
                 print(f"Bot is admin in: {channel['name']} ({chat.id})")
         except Exception as e:
             print(f"Error checking admin for {channel['name']}: {e}")
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global admin_channels
-    if not admin_channels:
-        await fetch_admin_channels(context.bot, REQUIRED_CHANNELS)
-    # باقی start کا کوڈ یہاں ہوگا...
 
 
 async def show_join_channels(update: Update):
