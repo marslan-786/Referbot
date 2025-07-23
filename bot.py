@@ -339,7 +339,6 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(check_joined, pattern="^check_joined$"))
     app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(CallbackQueryHandler(withdrawal_handler, pattern="^withdraw$"))
     app.add_handler(CallbackQueryHandler(main_menu_handler, pattern="^main_menu$"))
     app.add_handler(CallbackQueryHandler(redeem_handler, pattern="^redeem_"))
 
