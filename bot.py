@@ -19,6 +19,7 @@ REQUIRED_CHANNELS = [
 OWNER_ID = 8003357608
 channel_cache = {}
 user_join_status = {}
+admin_channels = []  # global variable
 
 # ---------- UTILS ----------
 async def get_channel_id(bot, link: str) -> int:
