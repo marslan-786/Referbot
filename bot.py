@@ -68,47 +68,49 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     users = load_users()
 
-    # ریفرل کوڈ نکالیں اگر کوئی ہو
+    # Referral code extract
     referral_code = None
     if text and len(text.split()) > 1:
         referral_code = text.split()[1]
 
-    # اونر کے لیے فوراً مین مینیو شو کرو اور ریفرل چیک نہ کرو
+    # Owner gets direct main menu without referral checks
     if user.id == OWNER_ID:
         await send_main_menu(update)
         return
 
-    # اگر ریفرل کوڈ ہے اور ریفرر موجود ہے، تو اس کا ریفرل کاؤنٹ اور پوائنٹس بڑھائیں
+    # Referral processing (if any)
     if referral_code:
         referrer_id = referral_code
-        if referrer_id != str(user.id):  # خود کو ریفر نہ کرے یوزر
-            # اگر ریفرر یوزر موجود نہیں تو نیا بنائیں
+        if referrer_id != str(user.id):  # Prevent self-referral
             if referrer_id not in users:
                 users[referrer_id] = {"referrals": [], "points": 0}
 
-            # اگر پہلے ریفر نہیں کیا تو ایڈ کریں
             if str(user.id) not in users[referrer_id]["referrals"]:
                 users[referrer_id]["referrals"].append(str(user.id))
-                users[referrer_id]["points"] += 2  # ریفرل پوائنٹس
+                users[referrer_id]["points"] += 2
 
-                # یوزر کو بھی اپنی ڈیٹا فائل میں شامل کریں اگر نہیں ہے
                 if str(user.id) not in users:
                     users[str(user.id)] = {"referrals": [], "points": 0}
 
                 save_users(users)
 
-    # باقی چینلز ایڈمن چیک اور جوائننگ چیک
-    global admin_channels
-    if not admin_channels:
-        await fetch_admin_channels(context.bot, REQUIRED_CHANNELS)
+                # Notify referrer about new referral
+                try:
+                    referrer_chat_id = int(referrer_id)
+                    referred_username = user.username or "NoUsername"
+                    referred_id = user.id
+                    msg = (
+                        f"🎉 Congratulations! You have a new referral.\n\n"
+                        f"User: @{referred_username}\n"
+                        f"User ID: {referred_id}\n"
+                        f"You earned 2 points."
+                    )
+                    await context.bot.send_message(chat_id=referrer_chat_id, text=msg)
+                except Exception as e:
+                    print(f"Error sending referral notification: {e}")
 
-    joined_all, _ = await has_joined_all_channels(context.bot, user.id)
-
-    if not joined_all:
-        await show_join_channels(update)
-        return
-
-    await send_main_menu(update)
+    # Show join channels prompt unconditionally (no admin/channel join check here)
+    await show_join_channels(update)
         
 admin_channels = []
 
@@ -150,19 +152,21 @@ async def show_join_channels(update: Update):
         )
 
 
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
+
 async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
+    user_id = update.effective_user.id
+    data = context.user_data
 
-    joined_all, not_joined = await has_joined_all_channels(context.bot, user_id)
-
-    if not joined_all:
-        not_joined_str = "\n".join(f"❌ {name}" for name in not_joined)
-        await query.answer(f"You have NOT joined:\n{not_joined_str}", show_alert=True)
+    if not data.get("has_seen_error"):
+        # First time click — show error only
+        data["has_seen_error"] = True
+        await update.callback_query.answer()
+        await update.callback_query.message.reply_text("❌ Please first join all required channels before proceeding.")
     else:
-        user_join_status[user_id] = True
-        await query.answer("✅ You have joined all required channels!", show_alert=True)
-        await query.edit_message_caption("🎉 You have joined all required channels!")
+        # Second time — show main menu
+        await send_main_menu(update)
         
         
 async def my_referrals_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
