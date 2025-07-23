@@ -76,55 +76,21 @@ async def has_joined_all_channels(bot, user_id: int) -> (bool, list):
 # ---------- HANDLERS ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    message = update.message or update.effective_message  # fallback
-    text = message.text if message else ""  # /start or /start referralcode
+    message = update.message or update.effective_message
+    text = message.text if message else ""
 
     users = load_users()
 
-    # Referral code extract
-    referral_code = None
-    if text and len(text.split()) > 1:
-        referral_code = text.split()[1]
-
-    # ✅ Make sure user exists in users.json even without referral
+    # ✅ Save user in users.json (if not exists)
     if str(user.id) not in users:
-        users[str(user.id)] = {"referrals": [], "points": 0}
+        users[str(user.id)] = {
+            "referrals": [],
+            "points": 0,
+            "name": f"{user.full_name}"
+        }
         save_users(users)
 
-    # 🛡 Owner bypasses all checks
-    if user.id == OWNER_ID:
-        await send_main_menu(update)
-        return
-
-    # 💡 Referral processing (if provided)
-    if referral_code:
-        referrer_id = referral_code
-        if referrer_id != str(user.id):  # Prevent self-referral
-            if referrer_id not in users:
-                users[referrer_id] = {"referrals": [], "points": 0}
-
-            if str(user.id) not in users[referrer_id]["referrals"]:
-                users[referrer_id]["referrals"].append(str(user.id))
-                users[referrer_id]["points"] += 2
-
-                save_users(users)
-
-                # Notify referrer
-                try:
-                    referrer_chat_id = int(referrer_id)
-                    referred_username = user.username or "NoUsername"
-                    referred_id = user.id
-                    msg = (
-                        f"🎉 Congratulations! You have a new referral.\n\n"
-                        f"User: @{referred_username}\n"
-                        f"User ID: {referred_id}\n"
-                        f"You earned 2 points."
-                    )
-                    await context.bot.send_message(chat_id=referrer_chat_id, text=msg)
-                except Exception as e:
-                    print(f"Error sending referral notification: {e}")
-
-    # ✅ Show join channels prompt unconditionally
+    # ✅ Always show join channels (even for owner)
     await show_join_channels(update)
 
 
