@@ -185,67 +185,50 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     try:
         if query.data == 'joined_channels':
-            # Track clicks
             user_clicks[user_id] = user_clicks.get(user_id, 0) + 1
             
             if user_clicks[user_id] == 1:
-                # First click - show error message
                 await query.edit_message_reply_markup(
                     reply_markup=channel_join_keyboard(show_error=True)
                 )
             else:
-                # Second click - proceed to main menu
+                await query.message.delete()
                 await show_main_menu(query.message.chat_id, context)
-                
+
         elif query.data == 'my_account':
+            await query.message.delete()
             text = (
                 "*📊 Account Details*\n\n"
                 f"🪙 Points: `{user_data['points']}`\n"
                 f"👥 Referrals: `{user_data['referrals']}`"
             )
-            await send_menu_with_banner(
-                query.message.chat_id,
-                context,
-                text,
-                back_to_menu_keyboard()
-            )
+            await send_menu_with_banner(query.message.chat_id, context, text, back_to_menu_keyboard())
             
         elif query.data == 'my_referrals':
+            await query.message.delete()
             text = f"*👥 Your Referrals*\n\nTotal: `{user_data['referrals']}`"
-            await send_menu_with_banner(
-                query.message.chat_id,
-                context,
-                text,
-                back_to_menu_keyboard()
-            )
-            
+            await send_menu_with_banner(query.message.chat_id, context, text, back_to_menu_keyboard())
+
         elif query.data == 'invite_friends':
+            await query.message.delete()
             text = (
                 "*📨 Invite Friends*\n\n"
                 f"Your referral link:\n`https://t.me/{context.bot.username}?start=ref{user_data['referral_code']}`\n\n"
                 "Earn 2 points per referral!"
             )
-            await send_menu_with_banner(
-                query.message.chat_id,
-                context,
-                text,
-                back_to_menu_keyboard()
-            )
-            
+            await send_menu_with_banner(query.message.chat_id, context, text, back_to_menu_keyboard())
+
         elif query.data == 'withdraw':
+            await query.message.delete()
             text = (
                 "*💰 Withdraw*\n\n"
                 f"Your points: `{user_data['points']}`\n\n"
                 "Choose redemption:"
             )
-            await send_menu_with_banner(
-                query.message.chat_id,
-                context,
-                text,
-                withdraw_keyboard()
-            )
-            
+            await send_menu_with_banner(query.message.chat_id, context, text, withdraw_keyboard())
+
         elif query.data in ['withdraw_40', 'withdraw_70', 'withdraw_100']:
+            await query.message.delete()
             points = int(query.data.split('_')[1])
             amounts = {40: 200, 70: 500, 100: 1000}
             
@@ -253,19 +236,17 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 user_data['points'] -= points
                 update_user_data(user_id, user_data)
                 text = f"🎉 Success!\n\nYou redeemed Rs.{amounts[points]} code!"
+                reply_markup = back_to_menu_keyboard()
             else:
                 text = f"❌ You need {points} points!"
-                
-            await send_menu_with_banner(
-                query.message.chat_id,
-                context,
-                text,
-                back_to_menu_keyboard() if user_data['points'] >= points else withdraw_keyboard()
-            )
-            
+                reply_markup = withdraw_keyboard()
+
+            await send_menu_with_banner(query.message.chat_id, context, text, reply_markup)
+
         elif query.data == 'back_to_menu':
+            await query.message.delete()
             await show_main_menu(query.message.chat_id, context)
-            
+
     except Exception as e:
         print(f"Error: {e}")
         await query.message.reply_text("⚠️ Please try again or use /start")
