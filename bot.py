@@ -108,12 +108,15 @@ async def show_join_channels(update: Update):
     keyboard.append([InlineKeyboardButton("✅ Joined", callback_data="check_joined")])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    with open("banner.jpg", "rb") as photo:
-        await update.message.reply_photo(
-            photo=photo,
-            caption="👇 Please join all channels to use the bot 👇",
-            reply_markup=reply_markup
-        )
+    try:
+        with open("banner.jpg", "rb") as photo:
+            await update.effective_chat.send_photo(
+                photo=photo,
+                caption="👇 Please join all channels to use the bot 👇",
+                reply_markup=reply_markup
+            )
+    except Exception as e:
+        print(f"Error sending join banner: {e}")
 
 
 async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
