@@ -118,6 +118,68 @@ async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_join_status[user_id] = True
         await query.answer("✅ You have joined all required channels!", show_alert=True)
         await query.edit_message_caption("🎉 You have joined all required channels!")
+        
+        
+
+# فرض کرتے ہیں کہ یوزر کا بیلنس اور ریفرلز کہیں سے فچ کرنے کا فنکشن ہے
+# یہاں مثال کے طور پر ہارڈ کوڈ ویلیوز دے رہا ہوں، آپ ڈیٹا بیس یا دوسرے ذریعے سے لے سکتے ہیں
+
+async def my_account_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user = query.from_user
+
+    # Example user data (replace with real data fetching)
+    user_balance = 150  # example points
+    user_referrals = 5  # example referral count
+    min_withdrawal = 40
+
+    text = (
+        f"📊 Your Account Info:\n\n"
+        f"💰 Balance: {user_balance} points\n"
+        f"👥 Referrals: {user_referrals}\n\n"
+        f"Minimum Withdrawal: {min_withdrawal} points"
+    )
+
+    keyboard = [
+        [InlineKeyboardButton("⬅️ Back", callback_data="back_to_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.edit_message_caption(caption=text, reply_markup=reply_markup)
+    
+    
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    data = query.data
+
+    if data == "my_account":
+        # Handle My Account button
+        user_balance = 150
+        user_referrals = 5
+        min_withdrawal = 40
+        text = (
+            f"📊 Your Account Info:\n\n"
+            f"💰 Balance: {user_balance} points\n"
+            f"👥 Referrals: {user_referrals}\n\n"
+            f"Minimum Withdrawal: {min_withdrawal} points"
+        )
+        keyboard = [[InlineKeyboardButton("⬅️ Back", callback_data="back_to_menu")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_caption(caption=text, reply_markup=reply_markup)
+
+    elif data == "back_to_menu":
+        # Show main menu again (banner + 4 buttons)
+        await send_main_menu(update)  # آپ کا main menu function جو بنائیں گے
+
+    # مزید بٹن یہاں add کریں جیسے:
+    # elif data == "my_referrals":
+    #     # Handle my referrals button
+
+    else:
+        await query.answer("Unknown action!")
+
+# پھر اس handler کو add کریں
+
 
 
 # ---------- MAIN ----------
@@ -126,6 +188,7 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(check_joined, pattern="^check_joined$"))
+    app.add_handler(CallbackQueryHandler(button_handler))
 
     print("🤖 Bot is running...")
     app.run_polling()
