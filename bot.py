@@ -75,18 +75,20 @@ async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
 
     not_joined = []
+
     for channel in REQUIRED_CHANNELS:
         try:
             chat_id = await get_channel_id(context.bot, channel["link"])
             member = await context.bot.get_chat_member(chat_id, user_id)
+            # یہاں چیک کرتے ہیں کہ یوزر اس چینل میں نہیں ہے
             if member.status not in ["member", "administrator", "creator"]:
                 not_joined.append(channel["name"])
         except Exception as e:
-            logging.warning(f"Error checking membership for {channel['name']}: {e}")
+            # اگر error آئے تو سمجھیں یوزر نے چینل join نہیں کیا
             not_joined.append(channel["name"])
 
     if not_joined:
-        # صرف وہ چینلز دکھائیں جو NOT joined ہیں
+        # صرف وہ چینلز دکھائیں جو not joined ہیں
         not_joined_str = "\n".join(f"❌ {name}" for name in not_joined)
         await query.answer(f"You have NOT joined these channels:\n{not_joined_str}", show_alert=True)
     else:
