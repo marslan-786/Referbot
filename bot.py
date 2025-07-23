@@ -87,23 +87,41 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📢 Please join all the required channels to continue:",
         reply_markup=reply_markup
     )
+    
+import json
+import os
+
+# Path where the user check count JSON will be stored
+CHECK_COUNT_FILE = "user_check_count.json"
+
+# Load existing check counts from file
+if os.path.exists(CHECK_COUNT_FILE):
+    with open(CHECK_COUNT_FILE, "r") as f:
+        user_check_count = json.load(f)
+else:
+    user_check_count = {}
+
+# Helper to save the updated count
+def save_user_check_count():
+    with open(CHECK_COUNT_FILE, "w") as f:
+        json.dump(user_check_count, f)
 
 async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = str(query.from_user.id)
     await query.answer()
 
-    # Track how many times user clicked "I've Joined"
+    # کلک گنتی ٹریک کریں
     count = user_check_data.get(user_id, 0) + 1
     user_check_data[user_id] = count
     save_json("user_check_count.json", user_check_data)
 
     if count == 1:
-        # First time: Send error message to join channels
+        # پہلی بار: ایرر میسج دیں
         await query.message.reply_text("❌ You have not joined all channels. Please join them and try again.")
     else:
-        # Second time: Show main menu
-        await query.message.delete()  # delete join message
+        # دوسری بار یا اس کے بعد: مین مینیو دکھائیں
+        await query.message.delete()
         await send_main_menu(query.message, context)
 
 async def send_main_menu(update_or_message, context: ContextTypes.DEFAULT_TYPE = None):
@@ -117,18 +135,17 @@ async def send_main_menu(update_or_message, context: ContextTypes.DEFAULT_TYPE =
     photo_path = "banner.jpg"
 
     if hasattr(update_or_message, "callback_query") and update_or_message.callback_query:
-        # جب callback_query ہو
         try:
             await update_or_message.callback_query.message.delete()
         except Exception as e:
             print(f"Error deleting message in send_main_menu: {e}")
-        await update_or_message.callback_query.message.chat.send_photo(
+        await context.bot.send_photo(
+            chat_id=update_or_message.callback_query.message.chat.id,
             photo=open(photo_path, "rb"),
             caption="🏠 Welcome to the Main Menu:",
             reply_markup=reply_markup
         )
     else:
-        # ورنہ یہ میسج آبجیکٹ ہوگا
         await update_or_message.reply_photo(
             photo=open(photo_path, "rb"),
             caption="🏠 Welcome to the Main Menu:",
