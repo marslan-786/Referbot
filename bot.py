@@ -11,17 +11,16 @@ from telegram.ext import (
 
 # Bot configuration
 TOKEN = os.getenv('BOT_TOKEN')
-LOGO_PATH = "logo.png"  # Main logo
-BANNER_PATH = "banner.png"  # Banner for all menus
+BANNER_PATH = "logo.png"
 USER_DB_FILE = "user_db.json"
 
-# Initialize user database
+# Initialize database
 def init_user_db():
     if not os.path.exists(USER_DB_FILE):
         with open(USER_DB_FILE, 'w') as f:
             json.dump({}, f)
 
-# Load user database
+# Load user data
 def load_user_db():
     try:
         with open(USER_DB_FILE, 'r') as f:
@@ -29,12 +28,12 @@ def load_user_db():
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
-# Save user database
+# Save user data
 def save_user_db(db):
     with open(USER_DB_FILE, 'w') as f:
         json.dump(db, f, indent=4)
 
-# Get or create user data
+# Get or create user
 def get_user_data(user_id):
     db = load_user_db()
     user_id_str = str(user_id)
@@ -47,7 +46,13 @@ def get_user_data(user_id):
         save_user_db(db)
     return db[user_id_str]
 
-# Handle referral
+# Update user data
+def update_user_data(user_id, data):
+    db = load_user_db()
+    db[str(user_id)] = data
+    save_user_db(db)
+
+# Handle referrals
 def handle_referral(user_id, referrer_id):
     db = load_user_db()
     referrer_id_str = str(referrer_id)
@@ -67,34 +72,36 @@ def main_menu_keyboard():
 
 def withdraw_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("40 Points - Rs.200 Redeem Code", callback_data='withdraw_40')],
-        [InlineKeyboardButton("70 Points - Rs.500 Redeem Code", callback_data='withdraw_70')],
-        [InlineKeyboardButton("100 Points - Rs.1000 Redeem Code", callback_data='withdraw_100')],
-        [InlineKeyboardButton("Back to Menu", callback_data='back_to_menu')]
+        [InlineKeyboardButton("40 Points - Rs.200", callback_data='withdraw_40')],
+        [InlineKeyboardButton("70 Points - Rs.500", callback_data='withdraw_70')],
+        [InlineKeyboardButton("100 Points - Rs.1000", callback_data='withdraw_100')],
+        [InlineKeyboardButton("Back", callback_data='back_to_menu')]
     ])
 
 def back_to_menu_keyboard():
-    return InlineKeyboardMarkup([[InlineKeyboardButton("Back to Menu", callback_data='back_to_menu')]])
+    return InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data='back_to_menu')]])
 
 # Send message with banner
-async def send_menu_with_banner(chat_id, context, caption, reply_markup):
+async def send_menu_with_banner(chat_id, context, text, reply_markup):
     try:
         with open(BANNER_PATH, 'rb') as banner:
             await context.bot.send_photo(
                 chat_id=chat_id,
                 photo=banner,
-                caption=caption,
-                reply_markup=reply_markup
+                caption=text,
+                reply_markup=reply_markup,
+                parse_mode='Markdown'
             )
     except Exception as e:
         print(f"Banner Error: {e}")
         await context.bot.send_message(
             chat_id=chat_id,
-            text=caption,
-            reply_markup=reply_markup
+            text=text,
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
         )
 
-# Start command handler
+# Start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message:
         return
@@ -102,21 +109,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     user_data = get_user_data(user_id)
     
+    # Handle referrals
     if context.args and len(context.args) > 0 and context.args[0].startswith('ref'):
         referrer_code = context.args[0][3:]
         db = load_user_db()
         referrer_id = next((uid for uid, data in db.items() if data.get('referral_code') == referrer_code), None)
         if referrer_id and referrer_id != str(user_id):
             handle_referral(user_id, int(referrer_id))
+            user_data = get_user_data(user_id)  # Refresh data
     
+    await show_main_menu(update.message.chat_id, context)
+
+# Show main menu
+async def show_main_menu(chat_id, context):
     await send_menu_with_banner(
-        update.message.chat_id,
+        chat_id,
         context,
-        "Welcome to Google Play Redeem Code Bot",
+        "*🏠 Main Menu*\n\nWelcome to Google Play Redeem Code Bot",
         main_menu_keyboard()
     )
 
-# Button callback handler
+# Button handler
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     if not query:
@@ -129,9 +142,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         if query.data == 'my_account':
             text = (
-                f"📊 Account Details\n\n"
-                f"🪙 Points: {user_data['points']}\n"
-                f"👥 Referrals: {user_data['referrals']}"
+                "*📊 Account Details*\n\n"
+                f"🪙 Points: `{user_data['points']}`\n"
+                f"👥 Referrals: `{user_data['referrals']}`"
             )
             await send_menu_with_banner(
                 query.message.chat_id,
@@ -139,23 +152,21 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 text,
                 back_to_menu_keyboard()
             )
-            await query.delete_message()
             
         elif query.data == 'my_referrals':
-            text = f"👥 Your Referrals\n\nTotal Referrals: {user_data['referrals']}"
+            text = f"*👥 Your Referrals*\n\nTotal: `{user_data['referrals']}`"
             await send_menu_with_banner(
                 query.message.chat_id,
                 context,
                 text,
                 back_to_menu_keyboard()
             )
-            await query.delete_message()
             
         elif query.data == 'invite_friends':
             text = (
-                f"📨 Invite Friends\n\nShare your referral link and earn 2 points:\n\n"
-                f"https://t.me/{context.bot.username}?start=ref{user_data['referral_code']}\n\n"
-                f"Each referral earns you 2 points!"
+                "*📨 Invite Friends*\n\n"
+                f"Your referral link:\n`https://t.me/{context.bot.username}?start=ref{user_data['referral_code']}`\n\n"
+                "Earn 2 points per referral!"
             )
             await send_menu_with_banner(
                 query.message.chat_id,
@@ -163,45 +174,44 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 text,
                 back_to_menu_keyboard()
             )
-            await query.delete_message()
             
         elif query.data == 'withdraw':
-            text = f"💰 Withdraw Points\n\nCurrent Points: {user_data['points']}\nSelect an option:"
+            text = (
+                "*💰 Withdraw*\n\n"
+                f"Your points: `{user_data['points']}`\n\n"
+                "Choose redemption:"
+            )
             await send_menu_with_banner(
                 query.message.chat_id,
                 context,
                 text,
                 withdraw_keyboard()
             )
-            await query.delete_message()
             
-        elif query.data == 'withdraw_40':
-            if user_data['points'] >= 40:
-                user_data['points'] -= 40
+        elif query.data in ['withdraw_40', 'withdraw_70', 'withdraw_100']:
+            points = int(query.data.split('_')[1])
+            amounts = {40: 200, 70: 500, 100: 1000}
+            
+            if user_data['points'] >= points:
+                user_data['points'] -= points
                 update_user_data(user_id, user_data)
-                text = "🎉 You've redeemed 200 RS Google Play Code!"
+                text = f"🎉 Success!\n\nYou redeemed Rs.{amounts[points]} code!"
             else:
-                text = "❌ Error: You need at least 40 points"
+                text = f"❌ You need {points} points!"
+                
             await send_menu_with_banner(
                 query.message.chat_id,
                 context,
                 text,
-                back_to_menu_keyboard() if user_data['points'] >= 40 else withdraw_keyboard()
+                back_to_menu_keyboard() if user_data['points'] >= points else withdraw_keyboard()
             )
-            await query.delete_message()
             
         elif query.data == 'back_to_menu':
-            await send_menu_with_banner(
-                query.message.chat_id,
-                context,
-                "Welcome to Google Play Redeem Code Bot",
-                main_menu_keyboard()
-            )
-            await query.delete_message()
+            await show_main_menu(query.message.chat_id, context)
             
     except Exception as e:
-        print(f"Button Error: {e}")
-        await query.message.reply_text("An error occurred. Please try /start again.")
+        print(f"Error: {e}")
+        await query.message.reply_text("⚠️ Please try again or use /start")
 
 def main() -> None:
     init_user_db()
