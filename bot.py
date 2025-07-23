@@ -154,7 +154,8 @@ async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.delete()
         except:
             pass
-        await send_main_menu(context.bot, query.message.chat_id)
+        # یہاں آپ 'update' ہی پاس کریں، جو کہ CallbackQueryUpdate ہے
+        await send_main_menu(update)
 
 async def send_main_menu(update: Update):
     keyboard = [
