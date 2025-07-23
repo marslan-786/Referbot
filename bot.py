@@ -22,15 +22,6 @@ logging.basicConfig(level=logging.INFO)
 # ---------- CONFIG ----------
 BOT_TOKEN = "7902248899:AAHElm3aHJeP3IZiy2SN3jLAgV7ZwRXnvdo"
 
-REQUIRED_CHANNELS = [
-    {"name": "Channel 1", "link": "https://t.me/+92ZkRWBBExhmNzY1"},
-    {"name": "Channel 2", "link": "https://t.me/+dsm5id0xjLQyZjcx"},
-    {"name": "Channel 3", "link": "https://t.me/+ggvGbpCytFU5NzQ1"},
-    {"name": "Channel 4", "link": "https://t.me/+ddWJ_3i9FKEwYzM9"},
-    {"name": "Channel 5", "link": "https://t.me/+VCRRpYGKMz8xY2U0"},
-    {"name": "Channel 6", "link": "https://t.me/botsworldtar"},
-]
-
 OWNER_ID = 8003357608
 channel_cache = {}
 user_join_status = {}
@@ -75,29 +66,23 @@ async def has_joined_all_channels(bot, user_id: int) -> (bool, list):
 
 
 # ---------- HANDLERS ----------
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-
-    # ریکوائرڈ چینلز کی لسٹ
-    required_channels = [
-        {"name": "Channel 1", "url": "https://t.me/+ggvGbpCytFU5NzQ1"},
-        {"name": "Channel 2", "url": "https://t.me/+dsm5id0xjLQyZjcx"},
-        {"name": "Channel 3", "url": "https://t.me/+92ZkRWBBExhmNzY1"},
-        {"name": "Channel 4", "url": "https://t.me/botsworldtar"},
-        {"name": "Channel 5", "url": "https://t.me/+VCRRpYGKMz8xY2U0"},
-        {"name": "Channel 6", "url": "https://t.me/+ddWJ_3i9FKEwYzM9"},
-    ]
-
-    # جوائن بٹن بنائیں
+    # چینلز کے بٹن سیدھے InlineKeyboardButton میں دیے گئے ہیں، الگ لسٹ نہیں
     buttons = [
-        [InlineKeyboardButton(channel["name"], url=channel["url"])]
-        for channel in required_channels
+        [InlineKeyboardButton("📢 Channel 1", url="https://t.me/+ggvGbpCytFU5NzQ1"),
+         InlineKeyboardButton("📢 Channel 2", url="https://t.me/+dsm5id0xjLQyZjcx")],
+        [InlineKeyboardButton("📢 Channel 3", url="https://t.me/+92ZkRWBBExhmNzY1"),
+         InlineKeyboardButton("📢 Channel 4", url="https://t.me/botsworldtar")],
+        [InlineKeyboardButton("📢 Channel 5", url="https://t.me/+VCRRpYGKMz8xY2U0"),
+         InlineKeyboardButton("📢 Channel 6", url="https://t.me/+ddWJ_3i9FKEwYzM9")],
+        [InlineKeyboardButton("✅ Check Joined", callback_data="check_joined")]
     ]
-    buttons.append([InlineKeyboardButton("✅ Check Joined", callback_data="check_joined")])
 
     reply_markup = InlineKeyboardMarkup(buttons)
 
-    # سادہ میسج کے ساتھ بٹن سینڈ کریں
     await update.message.reply_text(
         "📢 Please join all the required channels to continue:",
         reply_markup=reply_markup
