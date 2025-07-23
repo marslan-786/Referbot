@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+from datetime import datetime
 
 from telegram import (
     Update,
@@ -74,60 +75,33 @@ async def has_joined_all_channels(bot, user_id: int) -> (bool, list):
 
 
 # ---------- HANDLERS ----------
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputFile
-from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler, Application
-from datetime import datetime
-import json
-
-REQUIRED_CHANNELS = [
-    {"name": "Channel 1", "link": "https://t.me/+92ZkRWBBExhmNzY1"},
-    {"name": "Channel 2", "link": "https://t.me/+dsm5id0xjLQyZjcx"},
-    {"name": "Channel 3", "link": "https://t.me/+ggvGbpCytFU5NzQ1"},
-    {"name": "Channel 4", "link": "https://t.me/+ddWJ_3i9FKEwYzM9"},
-    {"name": "Channel 5", "link": "https://t.me/+VCRRpYGKMz8xY2U0"},
-    {"name": "Channel 6", "link": "https://t.me/botsworldtar"},
-]
-
-users_data = {}
-user_check_data = {}
-
-def save_json(filename, data):
-    with open(filename, "w") as f:
-        json.dump(data, f, indent=4)
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    user_id = str(user.id)
 
-    # Save user data if new
-    if user_id not in users_data:
-        users_data[user_id] = {
-            "joined_at": datetime.utcnow().isoformat()
-        }
-        save_json("users.json", users_data)
+    # ریکوائرڈ چینلز کی لسٹ
+    required_channels = [
+        {"name": "Channel 1", "url": "https://t.me/+ggvGbpCytFU5NzQ1"},
+        {"name": "Channel 2", "url": "https://t.me/+dsm5id0xjLQyZjcx"},
+        {"name": "Channel 3", "url": "https://t.me/+92ZkRWBBExhmNzY1"},
+        {"name": "Channel 4", "url": "https://t.me/botsworldtar"},
+        {"name": "Channel 5", "url": "https://t.me/+VCRRpYGKMz8xY2U0"},
+        {"name": "Channel 6", "url": "https://t.me/+ddWJ_3i9FKEwYzM9"},
+    ]
 
-    # Build keyboard with channel buttons (2 per row)
-    keyboard = []
-    temp_row = []
-    for i, channel in enumerate(REQUIRED_CHANNELS, 1):
-        temp_row.append(InlineKeyboardButton(channel["name"], url=channel["link"]))
-        if i % 2 == 0:
-            keyboard.append(temp_row)
-            temp_row = []
-    if temp_row:
-        keyboard.append(temp_row)
+    # جوائن بٹن بنائیں
+    buttons = [
+        [InlineKeyboardButton(channel["name"], url=channel["url"])]
+        for channel in required_channels
+    ]
+    buttons.append([InlineKeyboardButton("✅ Check Joined", callback_data="check_joined")])
 
-    # Add "I've Joined" button
-    keyboard.append([InlineKeyboardButton("✅ I've Joined", callback_data="check_joined")])
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    reply_markup = InlineKeyboardMarkup(buttons)
 
-    # Send banner + buttons
-    with open("banner.jpg", "rb") as photo:
-        await update.message.reply_photo(
-            photo=photo,
-            caption="👇 Please join all required channels below to continue:",
-            reply_markup=reply_markup
-        )
+    # سادہ میسج کے ساتھ بٹن سینڈ کریں
+    await update.message.reply_text(
+        "📢 Please join all the required channels to continue:",
+        reply_markup=reply_markup
+    )
 
 async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -157,18 +131,19 @@ async def send_main_menu(update_or_message, context: ContextTypes.DEFAULT_TYPE =
     reply_markup = InlineKeyboardMarkup(keyboard)
     photo_path = "banner.jpg"
 
-    # update_or_message can be Update or Message object
-    if hasattr(update_or_message, "callback_query"):  # Update object
+    if hasattr(update_or_message, "callback_query") and update_or_message.callback_query:
+        # جب callback_query ہو
         try:
             await update_or_message.callback_query.message.delete()
-        except:
-            pass
+        except Exception as e:
+            print(f"Error deleting message in send_main_menu: {e}")
         await update_or_message.callback_query.message.chat.send_photo(
             photo=open(photo_path, "rb"),
             caption="🏠 Welcome to the Main Menu:",
             reply_markup=reply_markup
         )
-    else:  # Message object
+    else:
+        # ورنہ یہ میسج آبجیکٹ ہوگا
         await update_or_message.reply_photo(
             photo=open(photo_path, "rb"),
             caption="🏠 Welcome to the Main Menu:",
