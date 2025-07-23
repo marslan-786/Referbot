@@ -25,7 +25,7 @@ admin_channels = []  # global variable
 import json
 import os
 
-USER_FILE = "users.json"
+USER_FILE = "user.json"
 
 def load_users():
     if not os.path.exists(USER_FILE):
@@ -311,6 +311,24 @@ def redeem_handler(update: Update, context: CallbackContext):
         json.dump(users, f, indent=4)
 
     query.edit_message_text(reward_text + "\n\n✅ Our team will contact you soon with your code.\n\n🔙 You can go back to the menu anytime.")
+    
+async def send_main_menu(update: Update):
+    keyboard = [
+        [InlineKeyboardButton("👤 My Account", callback_data="my_account")],
+        [InlineKeyboardButton("👥 My Referrals", callback_data="my_referrals")],
+        [InlineKeyboardButton("📨 Invite Referral Link", callback_data="invite_referral")],
+        [InlineKeyboardButton("💵 Withdrawal", callback_data="withdraw")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    if update.message:
+        await update.message.reply_text("🏠 Welcome to the Main Menu:", reply_markup=reply_markup)
+    else:
+        await update.callback_query.message.edit_text("🏠 Welcome to the Main Menu:", reply_markup=reply_markup)
+        
+        
+async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await send_main_menu(update)
     
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
