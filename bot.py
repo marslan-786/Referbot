@@ -25,7 +25,7 @@ admin_channels = []  # global variable
 import json
 import os
 
-USER_FILE = "user.json"
+USER_FILE = "users.json"
 
 def load_users():
     if not os.path.exists(USER_FILE):
@@ -156,157 +156,213 @@ async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
         await send_main_menu(context.bot, query.message.chat_id)
 
-async def send_main_menu(bot, chat_id):
+async def send_main_menu(update: Update):
     keyboard = [
         [InlineKeyboardButton("👤 My Account", callback_data="my_account_handler")],
         [InlineKeyboardButton("👥 My Referrals", callback_data="my_referrals_handler")],
         [InlineKeyboardButton("📨 Invite Referral Link", callback_data="invite_referral_handler")],
-        [InlineKeyboardButton("💵 Withdrawal", callback_data="redeem_handler")],
+        [InlineKeyboardButton("💵 Withdrawal", callback_data="withdraw_menu")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await bot.send_message(chat_id=chat_id, text="🏠 Welcome to the Main Menu:", reply_markup=reply_markup)
+    
+    photo_path = "banner.jpg"  # آپ کا بینر پکچر کا فائل نیم اور لوکیشن
+
+    if update.message:
+        await update.message.reply_photo(photo=open(photo_path, "rb"), caption="🏠 Welcome to the Main Menu:", reply_markup=reply_markup)
+    else:
+        # اگر کال بیک ہے تو نیا میسج بھیجیں (edit_message_media تھوڑا پیچیدہ ہے)
+        await update.callback_query.message.delete()  # پہلے موجودہ میسج ڈیلیٹ کریں
+        await update.callback_query.message.chat.send_photo(photo=open(photo_path, "rb"), caption="🏠 Welcome to the Main Menu:", reply_markup=reply_markup)
         
         
-async def my_referrals_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def my_account_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = str(query.from_user.id)
 
-    # users.json کو محفوظ طریقے سے لوڈ کریں
-    try:
-        users = load_users()
-    except Exception:
-        users = {}
+    with open("users.json", "r") as f:
+        users = json.load(f)
 
     if user_id not in users:
-        referrals = []
-        points = 0
-    else:
-        user_data = users[user_id]
-        referrals = user_data.get("referrals", [])
-        points = user_data.get("points", 0)
-
-    referrals_count = len(referrals)
-
-    text = f"👥 You have {referrals_count} referral(s).\n"
-    if referrals_count > 0:
-        # ریفرلز کی IDs یا یوزر نیم دکھائیں (جتنے چاہیں)
-        text += "🔗 Your Referrals:\n" + "\n".join(referrals) + "\n\n"
-    text += f"💰 Your total points: {points}"
-
-    keyboard = [
-        [InlineKeyboardButton("⬅️ Back", callback_data="back_to_menu")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await query.edit_message_caption(caption=text, reply_markup=reply_markup)
-
-async def my_account_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = str(query.from_user.id)
-
-    # load users.json safely
-    try:
-        users = load_users()
-    except Exception:
-        users = {}
-
-    # اگر یوزر موجود نہیں تو ڈیفالٹ ویلیوز دیں
-    if user_id not in users:
-        user_balance = 0
-        user_referrals = 0
-        min_withdrawal = 40
-    else:
-        user_data = users[user_id]
-        user_balance = user_data.get("points", 0)
-        user_referrals = len(user_data.get("referrals", []))
-        min_withdrawal = 40  # ضرورت کے مطابق تبدیل کریں
-
-    text = (
-        f"📊 Your Account Info:\n\n"
-        f"💰 Balance: {user_balance} points\n"
-        f"👥 Referrals: {user_referrals}\n\n"
-        f"Minimum Withdrawal: {min_withdrawal} points"
-    )
-
-    keyboard = [
-        [InlineKeyboardButton("⬅️ Back", callback_data="back_to_menu")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    # اب میسج کو ایڈٹ کرتے ہوئے کیپشن اور بٹن بھیجیں
-    await query.edit_message_caption(caption=text, reply_markup=reply_markup)
-    
-async def invite_referral_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
-
-    bot_user = await context.bot.get_me()
-    bot_username = bot_user.username  # خودکار بوٹ یوزرنیم
-
-    referral_link = f"https://t.me/{bot_username}?start={user_id}"
-
-    text = (
-        f"🎯 Your Invite Referral Link:\n\n"
-        f"{referral_link}\n\n"
-        f"Share this link with your friends to earn points!"
-    )
-
-    keyboard = [
-        # یہ بٹن یوزر کو لنک پر لے جائے گا، جہاں سے وہ کاپی کر سکتے ہیں
-        [InlineKeyboardButton("🔗 Open Link", url=referral_link)],
-
-        # ٹیلیگرام شیئر بٹن (صرف نئے کلائنٹس پر کام کرے گا)
-        [InlineKeyboardButton("📤 Share Link", url=f"tg://msg_url?url={referral_link}")],
-
-        [InlineKeyboardButton("⬅️ Back", callback_data="back_to_menu")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await query.edit_message_caption(caption=text, reply_markup=reply_markup)
-    
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import CallbackContext
-
-    
-def redeem_handler(update: Update, context: CallbackContext):
-    query = update.callback_query
-    user_id = str(query.from_user.id)
-    data = query.data
-
-    import json
-    try:
-        with open("user.json", "r") as f:
-            users = json.load(f)
-    except:
-        users = {}
-
-    points = users.get(user_id, {}).get("points", 0)
-
-    required_points = 0
-    reward_text = ""
-
-    if data == "redeem_40":
-        required_points = 40
-        reward_text = "🎁 You have successfully redeemed Rs.200 Code!"
-    elif data == "redeem_70":
-        required_points = 70
-        reward_text = "🎁 You have successfully redeemed Rs.500 Code!"
-    elif data == "redeem_100":
-        required_points = 100
-        reward_text = "🎁 You have successfully redeemed Rs.1000 Code!"
-
-    if points < required_points:
-        query.answer("❌ Insufficient Points", show_alert=True)
-        query.edit_message_text("🚫 You don’t have enough points to withdraw this reward.\n\n👉 Please complete referrals to earn more points.")
+        await query.answer("User not registered.")
         return
 
-    # Deduct points
+    user_data = users[user_id]
+    username = user_data.get("username", "N/A")
+    balance = user_data.get("balance", 0)
+    referral_code = user_data.get("referral_code", "N/A")
+    referrals = len(user_data.get("referrals", []))
+
+    text = f"""👤 <b>My Account</b>
+
+🆔 <b>User ID:</b> <code>{user_id}</code>
+👤 <b>Username:</b> @{username}
+💰 <b>Balance:</b> {balance} PKR
+🔗 <b>Referral Code:</b> <code>{referral_code}</code>
+👥 <b>Total Referrals:</b> {referrals}
+"""
+
+    keyboard = [
+        [InlineKeyboardButton("🔙 Back to Menu", callback_data="back_main")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.message.delete()
+    await query.message.reply_text(text, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
+    
+# مائی ریفرل مینو
+async def my_referrals(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    # users.json سے ڈیٹا لوڈ کریں
+    with open("users.json", "r") as f:
+        users = json.load(f)
+
+    if user_id not in users:
+        await update.message.reply_text("⛔ You are not registered yet.")
+        return
+
+    user = users[user_id]
+    referral_code = user.get("referral_code", "N/A")
+    referrals = user.get("referrals", [])
+    referral_earning = user.get("referral_earning", 0)
+
+    # میسج تیار کریں
+    text = (
+        f"📢 *Your Referral Info:*\n\n"
+        f"🔗 *Referral Code:* `{referral_code}`\n"
+        f"👥 *Total Referrals:* {len(referrals)}\n"
+        f"💰 *Referral Earnings:* {referral_earning} PKR\n"
+    )
+
+    # بیک بٹن کے ساتھ مینو
+    keyboard = [
+        [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_photo(
+        photo=open("banner.jpg", "rb"),
+        caption=text,
+        reply_markup=reply_markup,
+        parse_mode=ParseMode.MARKDOWN
+    )
+    
+# انوائٹ ریفرل لنک مینو
+async def invite_referral_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    # users.json سے ڈیٹا لوڈ کریں
+    with open("users.json", "r") as f:
+        users = json.load(f)
+
+    if user_id not in users:
+        await update.message.reply_text("⛔ You are not registered yet.")
+        return
+
+    user = users[user_id]
+    referral_code = user.get("referral_code", "N/A")
+
+    bot_username = (await context.bot.get_me()).username
+    referral_link = f"https://t.me/{bot_username}?start={referral_code}"
+
+    text = (
+        f"📩 *Invite Your Friends!*\n\n"
+        f"🔗 *Your Referral Link:*\n`{referral_link}`\n\n"
+        f"👥 When someone joins using your link, you'll earn bonus rewards.\n"
+    )
+
+    keyboard = [
+        [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_photo(
+        photo=open("banner.jpg", "rb"),
+        caption=text,
+        reply_markup=reply_markup,
+        parse_mode=ParseMode.MARKDOWN
+    )
+    
+async def withdraw_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    with open("users.json", "r") as f:
+        users = json.load(f)
+
+    if user_id not in users:
+        await update.message.reply_text("⛔ You are not registered yet.")
+        return
+
+    points = users[user_id].get("points", 0)
+
+    text = (
+        f"💸 *Withdraw Menu*\n\n"
+        f"💰 Your Current Points: *{points}*\n\n"
+        f"Choose one of the options below to redeem your points:"
+    )
+
+    keyboard = [
+        [
+            InlineKeyboardButton("🎁 40 Points = Rs. 200", callback_data="withdraw_40"),
+            InlineKeyboardButton("🎁 70 Points = Rs. 500", callback_data="withdraw_70"),
+            InlineKeyboardButton("🎁 100 Points = Rs. 1000", callback_data="withdraw_100"),
+        ],
+        [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+    ]
+
+    await update.message.reply_text(
+        text,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    
+async def process_withdrawal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    data = query.data  # withdraw_40, withdraw_70, withdraw_100
+
+    with open("users.json", "r") as f:
+        users = json.load(f)
+
+    if user_id not in users:
+        await query.edit_message_text("⛔ You are not registered yet.")
+        return
+
+    user = users[user_id]
+    points = user.get("points", 0)
+
+    # پوائنٹس ریڈیم ویلیوز
+    withdraw_map = {
+        "withdraw_40": (40, 200),
+        "withdraw_70": (70, 500),
+        "withdraw_100": (100, 1000),
+    }
+
+    required_points, amount = withdraw_map.get(data, (None, None))
+
+    if required_points is None:
+        await query.edit_message_text("❌ Invalid option selected.")
+        return
+
+    if points < required_points:
+        await query.edit_message_text(f"🚫 You need *{required_points} points* to redeem Rs. {amount}.\nYou only have *{points} points*.",
+                                      parse_mode=ParseMode.MARKDOWN)
+        return
+
+    # پوائنٹس کم کرو
     users[user_id]["points"] -= required_points
-    with open("user.json", "w") as f:
+
+    with open("users.json", "w") as f:
         json.dump(users, f, indent=4)
 
-    query.edit_message_text(reward_text + "\n\n✅ Our team will contact you soon with your code.\n\n🔙 You can go back to the menu anytime.")
-    
+    await query.edit_message_text(
+        f"✅ Your request to redeem Rs. {amount} has been received.\n"
+        f"📤 Remaining Points: *{users[user_id]['points']}*\n\n"
+        f"👨‍💼 Our team will contact you soon for the payment.",
+        parse_mode=ParseMode.MARKDOWN
+    )
         
 async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_main_menu(update)
@@ -316,13 +372,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
 
     if data == "my_account_handler":
-        await my_account_handler(update, context)
+        await my_account_menu(update, context)
 
     elif data == "my_referrals_handler":
-        await my_referrals_handler(update, context)
+        await my_referrals(update, context)
 
     elif data == "invite_referral_handler":
-        await invite_referral_handler(update, context)
+        await invite_referral_link(update, context)
 
     elif data == "back_to_menu":
         await query.message.delete()
@@ -341,6 +397,11 @@ def main():
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(CallbackQueryHandler(main_menu_handler, pattern="^main_menu$"))
     app.add_handler(CallbackQueryHandler(redeem_handler, pattern="^redeem_"))
+    app.add_handler(CallbackQueryHandler(my_account_menu, pattern="^my_account$"))
+    app.add_handler(CallbackQueryHandler(my_referrals, pattern="^my_referrals$"))
+    app.add_handler(CallbackQueryHandler(invite_referral_link, pattern="^invite_referral$"))
+    app.add_handler(CallbackQueryHandler(withdraw_menu, pattern="^withdraw_menu$"))
+    app.add_handler(CallbackQueryHandler(process_withdrawal, pattern="^withdraw_"))
 
     print("🤖 Bot is running...")
     app.run_polling()
