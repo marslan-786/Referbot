@@ -74,10 +74,10 @@ async def has_joined_all_channels(bot, user_id: int) -> (bool, list):
 
 
 # ---------- HANDLERS ----------
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputFile
-from telegram import Update
-from telegram.ext import ContextTypes
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InputFile
+from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler, Application
 from datetime import datetime
+import json
 
 REQUIRED_CHANNELS = [
     {"name": "Channel 1", "link": "https://t.me/+92ZkRWBBExhmNzY1"},
@@ -88,9 +88,10 @@ REQUIRED_CHANNELS = [
     {"name": "Channel 6", "link": "https://t.me/botsworldtar"},
 ]
 
-users_data = {}  # فرض کریں کہ یہ کہیں لوڈ کیا گیا ہے
+users_data = {}
+user_check_data = {}
+
 def save_json(filename, data):
-    import json
     with open(filename, "w") as f:
         json.dump(data, f, indent=4)
 
@@ -98,75 +99,55 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = str(user.id)
 
-    # Load or create user data (یہاں فرض ہے users_data پہلے سے لوڈ ہے)
+    # Save user data if new
     if user_id not in users_data:
         users_data[user_id] = {
-            "referrer": None,
-            "invited": 0,
             "joined_at": datetime.utcnow().isoformat()
         }
         save_json("users.json", users_data)
 
-    # Build keyboard buttons for each channel from REQUIRED_CHANNELS
+    # Build keyboard with channel buttons (2 per row)
     keyboard = []
     temp_row = []
-    for i, channel in enumerate(REQUIRED_CHANNELS, start=1):
+    for i, channel in enumerate(REQUIRED_CHANNELS, 1):
         temp_row.append(InlineKeyboardButton(channel["name"], url=channel["link"]))
-        # 2 buttons per row
         if i % 2 == 0:
             keyboard.append(temp_row)
             temp_row = []
     if temp_row:
         keyboard.append(temp_row)
 
-    # Add "I've Joined" button in a new row
+    # Add "I've Joined" button
     keyboard.append([InlineKeyboardButton("✅ I've Joined", callback_data="check_joined")])
-
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Send banner photo with buttons
-    try:
-        with open("banner.jpg", "rb") as photo:
-            await update.message.reply_photo(
-                photo=photo,
-                caption="👇 Please join all required channels below to continue:",
-                reply_markup=reply_markup
-            )
-    except Exception as e:
-        print(f"Error sending banner photo: {e}")
-
-
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import ContextTypes
-import json
-import os
-
-CHECK_FILE = "user_check_count.json"
-
+    # Send banner + buttons
+    with open("banner.jpg", "rb") as photo:
+        await update.message.reply_photo(
+            photo=photo,
+            caption="👇 Please join all required channels below to continue:",
+            reply_markup=reply_markup
+        )
 
 async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = str(query.from_user.id)
-
     await query.answer()
 
-    # Load join check count
-    join_count = user_check_data.get(user_id, 0)
-
-    # Increase and save count
-    join_count += 1
-    user_check_data[user_id] = join_count
+    # Track how many times user clicked "I've Joined"
+    count = user_check_data.get(user_id, 0) + 1
+    user_check_data[user_id] = count
     save_json("user_check_count.json", user_check_data)
 
-    if join_count == 1:
+    if count == 1:
+        # First time: Send error message to join channels
         await query.message.reply_text("❌ You have not joined all channels. Please join them and try again.")
     else:
-        await query.message.reply_text("✅ Thank you! Access granted.")
+        # Second time: Show main menu
+        await query.message.delete()  # delete join message
         await send_main_menu(query.message, context)
 
-
-
-async def send_main_menu(update: Update):
+async def send_main_menu(update_or_message, context: ContextTypes.DEFAULT_TYPE = None):
     keyboard = [
         [InlineKeyboardButton("👤 My Account", callback_data="my_account")],
         [InlineKeyboardButton("👥 My Referrals", callback_data="my_referrals")],
@@ -174,23 +155,25 @@ async def send_main_menu(update: Update):
         [InlineKeyboardButton("💵 Withdrawal", callback_data="withdrawal")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
     photo_path = "banner.jpg"
 
-    # اگر یہ callback query ہے
-    if update.callback_query:
+    # update_or_message can be Update or Message object
+    if hasattr(update_or_message, "callback_query"):  # Update object
         try:
-            await update.callback_query.message.delete()
-        except Exception as e:
-            print(f"Error deleting message in send_main_menu: {e}")
-        await update.callback_query.message.chat.send_photo(photo=open(photo_path, "rb"),
-                                                           caption="🏠 Welcome to the Main Menu:",
-                                                           reply_markup=reply_markup)
-    else:
-        # یا normal message ہو
-        await update.message.reply_photo(photo=open(photo_path, "rb"),
-                                        caption="🏠 Welcome to the Main Menu:",
-                                        reply_markup=reply_markup)
+            await update_or_message.callback_query.message.delete()
+        except:
+            pass
+        await update_or_message.callback_query.message.chat.send_photo(
+            photo=open(photo_path, "rb"),
+            caption="🏠 Welcome to the Main Menu:",
+            reply_markup=reply_markup
+        )
+    else:  # Message object
+        await update_or_message.reply_photo(
+            photo=open(photo_path, "rb"),
+            caption="🏠 Welcome to the Main Menu:",
+            reply_markup=reply_markup
+        )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
