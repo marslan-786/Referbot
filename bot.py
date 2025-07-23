@@ -161,6 +161,7 @@ async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, ParseMode
 from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes
 import json
+from telegram.constants import ParseMode
 
 async def send_main_menu(update: Update):
     keyboard = [
