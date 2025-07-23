@@ -16,7 +16,7 @@ REQUIRED_CHANNELS = [
     {"name": "Channel 6", "link": "https://t.me/+ggvGbpCytFU5NzQ1"},
 ]
 
-# ----------- UTILS (Channel ID cache and membership check) -----------
+OWNER_ID = 8003357608  # اپنی ID یہاں ڈالیں
 
 channel_cache = {}
 
@@ -39,24 +39,27 @@ async def check_user_joined_all(bot, user_id: int) -> bool:
             return False
     return True
 
-# ----------- HANDLERS -----------
-
-OWNER_ID = 8003357608  # اپنی ID یہاں ڈالیں
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
 
     if user.id == OWNER_ID:
-        # Owner کو جوائننگ پیغام نہ دکھائیں، سیدھا Welcome میسج یا مینیو
         await update.message.reply_text(
             "🎉 Welcome, Owner! You have direct access to the bot features."
         )
         return
 
-    # باقی یوزرز کو چینلز جوائننگ والا پیغام بھیجیں
+    # دو دو بٹن ایک لائن میں بنانے کا طریقہ
     keyboard = []
-    for channel in REQUIRED_CHANNELS:
-        keyboard.append([InlineKeyboardButton(channel["name"], url=channel["link"])])
+    temp_row = []
+    for i, channel in enumerate(REQUIRED_CHANNELS, 1):
+        temp_row.append(InlineKeyboardButton(channel["name"], url=channel["link"]))
+        if i % 2 == 0:
+            keyboard.append(temp_row)
+            temp_row = []
+    if temp_row:
+        keyboard.append(temp_row)
+
+    # joined چیک بٹن نیچے ایڈ کریں
     keyboard.append([InlineKeyboardButton("✅ Joined", callback_data="check_joined")])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -70,8 +73,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
-    not_joined = []
 
+    not_joined = []
     for channel in REQUIRED_CHANNELS:
         try:
             chat_id = await get_channel_id(context.bot, channel["link"])
@@ -83,12 +86,12 @@ async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
             not_joined.append(channel["name"])
 
     if not_joined:
-        await query.answer(f"❌ You have not joined: {', '.join(not_joined)}", show_alert=True)
+        # صرف وہ چینلز دکھائیں جو NOT joined ہیں
+        not_joined_str = "\n".join(f"❌ {name}" for name in not_joined)
+        await query.answer(f"You have NOT joined these channels:\n{not_joined_str}", show_alert=True)
     else:
         await query.answer("✅ You are joined in all required channels!", show_alert=True)
         await query.edit_message_caption("🎉 You’ve joined all required channels!")
-
-# ----------- MAIN -----------
 
 def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
