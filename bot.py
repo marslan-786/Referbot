@@ -72,9 +72,9 @@ def main_menu_keyboard():
 
 def withdraw_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("40 Points - Rs.200", callback_data='withdraw_40')],
-        [InlineKeyboardButton("70 Points - Rs.500", callback_data='withdraw_70')],
-        [InlineKeyboardButton("100 Points - Rs.1000", callback_data='withdraw_100')],
+        [InlineKeyboardButton("40 Points - Rs.200 Redeem Code", callback_data='withdraw_40')],
+        [InlineKeyboardButton("70 Points - Rs.500 Redeem Code", callback_data='withdraw_70')],
+        [InlineKeyboardButton("100 Points - Rs.1000 Redeem Code", callback_data='withdraw_100')],
         [InlineKeyboardButton("Back", callback_data='back_to_menu')]
     ])
 
