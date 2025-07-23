@@ -39,8 +39,14 @@ async def check_user_joined_all(bot, user_id: int) -> bool:
             return False
     return True
 
+  # گلوبل لسٹ جس میں چینل IDs محفوظ ہوں گی
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+
+    # اگر admin_channels خالی ہے تو اپڈیٹ کر لیں
+    if not admin_channels:
+        await fetch_admin_channels(context.bot, REQUIRED_CHANNELS)
 
     if user.id == OWNER_ID:
         await update.message.reply_text(
@@ -69,26 +75,47 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption="👇 Please join all channels to use the bot 👇",
             reply_markup=reply_markup
         )
+admin_channels = []  # یہاں IDs آ جائیں گے جو بوت کے ہیں
 
+async def fetch_admin_channels(bot, required_channels):
+    global admin_channels
+    admin_channels = []  # پہلے خالی کریں
+
+    bot_user_id = (await bot.get_me()).id
+
+    for channel in required_channels:
+        try:
+            chat = await bot.get_chat(channel['link'])
+            admins = await bot.get_chat_administrators(chat.id)
+
+            # چیک کریں کہ بوت ایڈمن ہے یا نہیں
+            is_admin = any(admin.user.id == bot_user_id for admin in admins)
+            if is_admin:
+                admin_channels.append(chat.id)
+                print(f"Bot is admin in channel '{channel['name']}' (ID: {chat.id})")
+        except Exception as e:
+            print(f"Failed to check admin status for channel '{channel['name']}': {e}")
+
+
+# پھر join چیک میں admin_channels استعمال کریں:
 async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
 
     not_joined = []
 
-    for channel in REQUIRED_CHANNELS:
+    for chat_id in admin_channels:
         try:
-            chat_id = await get_channel_id(context.bot, channel["link"])
             member = await context.bot.get_chat_member(chat_id, user_id)
-            # یہاں چیک کرتے ہیں کہ یوزر اس چینل میں نہیں ہے
-            if member.status not in ["member", "administrator", "creator"]:
-                not_joined.append(channel["name"])
+            if member.status not in ['member', 'administrator', 'creator']:
+                # چینل کا نام چاہیے، تو ریورس میپ بنائیں یا ID کو نام سے map کریں
+                ch_name = next((ch['name'] for ch in REQUIRED_CHANNELS if await get_channel_id(context.bot, ch['link']) == chat_id), str(chat_id))
+                not_joined.append(ch_name)
         except Exception as e:
-            # اگر error آئے تو سمجھیں یوزر نے چینل join نہیں کیا
-            not_joined.append(channel["name"])
+            print(f"Error checking membership in channel ID {chat_id}: {e}")
+            not_joined.append(str(chat_id))
 
     if not_joined:
-        # صرف وہ چینلز دکھائیں جو not joined ہیں
         not_joined_str = "\n".join(f"❌ {name}" for name in not_joined)
         await query.answer(f"You have NOT joined these channels:\n{not_joined_str}", show_alert=True)
     else:
@@ -97,9 +124,14 @@ async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    # async function call to fetch admin channels before starting polling
+    import asyncio
+    asyncio.run(fetch_admin_channels(application.bot))
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(check_joined, pattern="^check_joined$"))
     application.run_polling()
+    
 
 if __name__ == "__main__":
     main()
