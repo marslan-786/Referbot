@@ -113,23 +113,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ✅ Show join channels prompt unconditionally
     await show_join_channels(update)
-        
-admin_channels = []
-
-async def fetch_admin_channels(bot, required_channels):
-    global admin_channels
-    admin_channels = []
-    bot_user_id = (await bot.get_me()).id
-    for channel in required_channels:
-        try:
-            chat = await bot.get_chat(channel['link'])
-            admins = await bot.get_chat_administrators(chat.id)
-            is_admin = any(admin.user.id == bot_user_id for admin in admins)
-            if is_admin:
-                admin_channels.append(chat.id)
-                print(f"Bot is admin in: {channel['name']} ({chat.id})")
-        except Exception as e:
-            print(f"Error checking admin for {channel['name']}: {e}")
 
 
 async def show_join_channels(update: Update):
@@ -162,12 +145,17 @@ async def check_joined(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = context.user_data
 
     if not data.get("has_seen_error"):
-        # First time click — show error only
         data["has_seen_error"] = True
         await update.callback_query.answer()
         await update.callback_query.message.reply_text("❌ Please first join all required channels before proceeding.")
     else:
-        # Second time — show main menu
+        try:
+            # Try to delete the old join message (if exists)
+            await update.callback_query.message.delete()
+        except Exception as e:
+            print(f"Error deleting message: {e}")
+
+        # Now send the main menu
         await send_main_menu(update)
         
         
