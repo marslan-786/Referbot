@@ -187,17 +187,21 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         if query.data == 'joined_channels':
             not_joined = []
-    
+
             for channel in CHANNELS:
+                if "id" not in channel:
+                    # اگر id نہیں ہے تو چیک نہ کرو، بس سکپ کرو
+                    continue
+
                 try:
                     member = await context.bot.get_chat_member(channel["id"], user_id)
                     if member.status not in ['member', 'administrator', 'creator']:
-                        not_joined.append(f"❌ You {channel['name']} Not Member in this channel")
+                        not_joined.append(f"❌ You are not a member of {channel['name']}")
                 except Exception as e:
-                    not_joined.append(f"⚠️ {channel['name']} not checked")
+                    not_joined.append(f"⚠️ Could not check {channel['name']}")
 
             if not_joined:
-                text = "⚠️ You Not joined All Channels:\n\n" + "\n".join(not_joined)
+                text = "⚠️ You have not joined all channels:\n\n" + "\n".join(not_joined)
                 await query.edit_message_caption(caption=text, reply_markup=channel_join_keyboard(show_error=True))
             else:
                 await query.message.delete()
