@@ -16,12 +16,12 @@ USER_DB_FILE = "user_db.json"
 
 # Channel configuration (replace with your actual channels)
 CHANNELS = [
-    {"name": "🔔 Channel 1", "url": "https://t.me/+ddWJ_3i9FKEwYzM9"},
-    {"name": "📢 Channel 2", "url": "https://t.me/+ggvGbpCytFU5NzQ1"},
-    {"name": "📣 Channel 3", "url": "https://t.me/Only_possible_world"},
-    {"name": "🔊 Channel 4", "url": "https://t.me/+dsm5id0xjLQyZjcx"},
-    {"name": "📡 Channel 5", "url": "https://t.me/+92ZkRWBBExhmNzY1"},
-    {"name": "📻 Channel 6", "url": "https://t.me/botsworldtar"}
+    {"name": "🔔 Channel 1", "url": "https://t.me/+92ZkRWBBExhmNzY1"},
+    {"name": "📢 Channel 2", "url": "https://t.me/+dsm5id0xjLQyZjcx"},
+    {"name": "📣 Channel 3", "url": "https://t.me/botsworldtar"},
+    {"name": "🔊 Channel 4", "url": "https://t.me/+ddWJ_3i9FKEwYzM9"},
+    {"name": "📡 Channel 5", "url": "https://t.me/+ggvGbpCytFU5NzQ1"},
+    {"name": "📻 Channel 6", "url": "https://t.me/only_possible_world"}
 ]
 
 # Track user clicks for channel joining
