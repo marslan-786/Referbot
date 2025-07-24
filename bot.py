@@ -21,8 +21,8 @@ CHANNELS = [
     {"name": "📣 Channel 3", "url": "https://t.me/botsworldtar", "id": -1001826519793},
     {"name": "🔊 Channel 4", "url": "https://t.me/+ddWJ_3i9FKEwYzM9", "id": -1002650001462},
     {"name": "📡 Channel 5", "url": "https://t.me/+ggvGbpCytFU5NzQ1", "id": -1002124581254},
-    {"name": "📻 Channel 6", "url": "https://t.me/only_possible_world", "id": -1002650289632},
-    {"name": "🔗 Channel 7", "url": "https://t.me/+bUxwbe_ZYok2ZWJl", "id": -1002675500631}
+    {"name": "🔗 Channel 6", "url": "https://t.me/+bUxwbe_ZYok2ZWJl"},
+    {"name": "📻 Channel 7", "url": "https://t.me/only_possible_world", "id": -1002650289632}
 ]
 
 # Track user clicks for channel joining
