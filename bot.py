@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+from telegram.constants import ChatAction
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -264,6 +265,49 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         print(f"Error: {e}")
         await query.message.reply_text("⚠️ Please try again or use /start")
         
+
+# --- Send Broadcast Command ---
+async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not context.args:
+        await update.message.reply_text("⚠️ Usage: /send Your message here")
+        return
+
+    message = ' '.join(context.args)
+    db = load_user_db()
+    total = 0
+    failed = 0
+
+    await update.message.reply_text("📤 Sending message to all users...")
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+
+    for user_id in db.keys():
+        try:
+            await context.bot.send_message(chat_id=int(user_id), text=message)
+            total += 1
+        except Exception:
+            failed += 1
+            continue
+
+    await update.message.reply_text(f"✅ Sent to {total} users.\n❌ Failed: {failed}")
+    
+# --- Backup Command ---
+async def send_backup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    try:
+        await update.message.reply_text("📦 Sending backup files...")
+
+        if os.path.exists("bot.py"):
+            await context.bot.send_document(update.effective_chat.id, document=open("bot.py", "rb"))
+        else:
+            await update.message.reply_text("❌ bot.py file not found.")
+
+        if os.path.exists("user_db.json"):
+            await context.bot.send_document(update.effective_chat.id, document=open("user_db.json", "rb"))
+        else:
+            await update.message.reply_text("❌ user_db.json file not found.")
+
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ Error while sending files: {e}")
+        
 # Status command
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     db = load_user_db()
@@ -290,6 +334,8 @@ def main() -> None:
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('status', status))
     application.add_handler(CallbackQueryHandler(button))
+    application.add_handler(CommandHandler('send', send_broadcast))
+    application.add_handler(CommandHandler('backup', send_backup))
     
     application.run_polling()
 
