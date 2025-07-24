@@ -19,10 +19,11 @@ CHANNELS = [
     {"name": "🔔 Channel 1", "url": "https://t.me/+92ZkRWBBExhmNzY1", "id": -1002215184698},
     {"name": "📢 Channel 2", "url": "https://t.me/+_btaEENlL79lMDY1"},
     {"name": "📣 Channel 3", "url": "https://t.me/botsworldtar", "id": -1001826519793},
-    {"name": "🔊 Channel 4", "url": "https://t.me/+ddWJ_3i9FKEwYzM9", "id": -1002650001462},
+    {"name": "🔊 Channel 4", "url": "https://t.me/+dsm5id0xjLQyZjcx", "id": -1002107245494},
     {"name": "📡 Channel 5", "url": "https://t.me/+ggvGbpCytFU5NzQ1", "id": -1002124581254},
     {"name": "🔗 Channel 6", "url": "https://t.me/+bUxwbe_ZYok2ZWJl"},
-    {"name": "📻 Channel 7", "url": "https://t.me/only_possible_world", "id": -1002650289632}
+    {"name": "📻 Channel 7", "url": "https://t.me/only_possible_world", "id": -1002650289632},
+    {"name": "📈 Channel 8", "url": "https://t.me/+ddWJ_3i9FKEwYzM9", "id": -1002650001462}
 ]
 
 # Track user clicks for channel joining
@@ -140,7 +141,7 @@ async def show_channel_join_menu(chat_id, context, user_id):
         chat_id,
         context,
         "📢 *Please join our official channels:*\n\n"
-        "1. Join all 7 channels below\n"
+        "1. Join all 8 channels below\n"
         "2. Then click 'I've Joined All Channels'",
         channel_join_keyboard()
     )
