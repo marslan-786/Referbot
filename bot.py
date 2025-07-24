@@ -16,12 +16,12 @@ USER_DB_FILE = "user_db.json"
 
 # Channel configuration (replace with your actual channels)
 CHANNELS = [
-    {"name": "🔔 Channel 1", "url": "https://t.me/+92ZkRWBBExhmNzY1"},
-    {"name": "📢 Channel 2", "url": "https://t.me/+dsm5id0xjLQyZjcx"},
-    {"name": "📣 Channel 3", "url": "https://t.me/botsworldtar"},
-    {"name": "🔊 Channel 4", "url": "https://t.me/+ddWJ_3i9FKEwYzM9"},
-    {"name": "📡 Channel 5", "url": "https://t.me/+ggvGbpCytFU5NzQ1"},
-    {"name": "📻 Channel 6", "url": "https://t.me/only_possible_world"}
+    {"name": "🔔 Channel 1", "url": "https://t.me/+92ZkRWBBExhmNzY1", "id": -1002215184698},
+    {"name": "📢 Channel 2", "url": "https://t.me/+dsm5id0xjLQyZjcx", "id": -1002107245494},
+    {"name": "📣 Channel 3", "url": "https://t.me/botsworldtar", "id": -1001826519793},
+    {"name": "🔊 Channel 4", "url": "https://t.me/+ddWJ_3i9FKEwYzM9", "id": -1002650001462},
+    {"name": "📡 Channel 5", "url": "https://t.me/+ggvGbpCytFU5NzQ1", "id": -1002124581254},
+    {"name": "📻 Channel 6", "url": "https://t.me/only_possible_world", "id": -1002650289632}
 ]
 
 # Track user clicks for channel joining
@@ -185,12 +185,19 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     try:
         if query.data == 'joined_channels':
-            user_clicks[user_id] = user_clicks.get(user_id, 0) + 1
-            
-            if user_clicks[user_id] == 1:
-                await query.edit_message_reply_markup(
-                    reply_markup=channel_join_keyboard(show_error=True)
-                )
+            not_joined = []
+    
+            for channel in CHANNELS:
+                try:
+                    member = await context.bot.get_chat_member(channel["id"], user_id)
+                    if member.status not in ['member', 'administrator', 'creator']:
+                        not_joined.append(f"❌ You {channel['name']} Not Member in this channel")
+                except Exception as e:
+                    not_joined.append(f"⚠️ {channel['name']} not checked")
+
+            if not_joined:
+                text = "⚠️ You Not joined All Channels:\n\n" + "\n".join(not_joined)
+                await query.edit_message_caption(caption=text, reply_markup=channel_join_keyboard(show_error=True))
             else:
                 await query.message.delete()
                 await show_main_menu(query.message.chat_id, context)
