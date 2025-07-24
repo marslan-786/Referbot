@@ -17,7 +17,6 @@ USER_DB_FILE = "user_db.json"
 # Channel configuration (replace with your actual channels)
 CHANNELS = [
     {"name": "🔔 Channel 1", "url": "https://t.me/+92ZkRWBBExhmNzY1", "id": -1002215184698},
-    {"name": "📢 Channel 2", "url": "https://t.me/+_btaEENlL79lMDY1"},
     {"name": "📣 Channel 3", "url": "https://t.me/botsworldtar", "id": -1001826519793},
     {"name": "🔊 Channel 4", "url": "https://t.me/+dsm5id0xjLQyZjcx", "id": -1002107245494},
     {"name": "📡 Channel 5", "url": "https://t.me/+ggvGbpCytFU5NzQ1", "id": -1002124581254},
