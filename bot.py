@@ -22,6 +22,7 @@ CHANNELS = [
     {"name": "🔊 Channel 4", "url": "https://t.me/+ddWJ_3i9FKEwYzM9", "id": -1002650001462},
     {"name": "📡 Channel 5", "url": "https://t.me/+ggvGbpCytFU5NzQ1", "id": -1002124581254},
     {"name": "📻 Channel 6", "url": "https://t.me/only_possible_world", "id": -1002650289632}
+    {"name": "🔗 Channel 7", "url": "https://t.me/only_possible_world", "id": -1002650289632}
 ]
 
 # Track user clicks for channel joining
