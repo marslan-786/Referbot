@@ -250,6 +250,22 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     except Exception as e:
         print(f"Error: {e}")
         await query.message.reply_text("⚠️ Please try again or use /start")
+        
+# Status command
+async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    db = load_user_db()
+    total_users = len(db)
+    total_points = sum(user.get("points", 0) for user in db.values())
+    total_referrals = sum(user.get("referrals", 0) for user in db.values())
+
+    text = (
+        "*📊 Bot Status*\n\n"
+        f"👥 Total Users: `{total_users}`\n"
+        f"🎯 Total Points Earned: `{total_points}`\n"
+        f"🤝 Total Referrals Made: `{total_referrals}`"
+    )
+
+    await update.message.reply_text(text, parse_mode='Markdown')
 
 def main() -> None:
     init_user_db()
@@ -259,6 +275,7 @@ def main() -> None:
         .build()
     
     application.add_handler(CommandHandler('start', start))
+    application.add_handler(CommandHandler('status', status))
     application.add_handler(CallbackQueryHandler(button))
     
     application.run_polling()
