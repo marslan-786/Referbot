@@ -28,7 +28,8 @@ CHANNELS = [
     {"name": "📈 Channel 7", "url": "https://t.me/+HCD6LvxtZEg2NDRl"},
     {"name": "🎬 Channel 8", "url": "https://t.me/+2i2Bbv0eaaw4ZDRl"},
     {"name": "🏗️ Channel 9", "url": "https://t.me/+0k61CBIBCQJjNWFl"},
-    {"name": "🎤 Channel 10", "url": "https://t.me/+MdCLWsOY3XRmNmY1"}
+    {"name": "🎤 Channel 10", "url": "https://t.me/+MdCLWsOY3XRmNmY1"},
+    {"name": "🦸 Channel 11", "url": "https://t.me/+bxuTB3JZ2SYwNTY1"}
 ]
 
 # Track user clicks for channel joining
@@ -392,7 +393,7 @@ async def generate_fake_redeem_message(bot, user_chat_id):
 async def gen_redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await generate_fake_redeem_message(bot=context.bot, user_chat_id=update.effective_chat.id)
-        await update.message.reply_text("✅ Fake redeem message generated.")
+        await update.message.reply_text("✅ successfully withdrawal.")
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {e}")
 
@@ -402,11 +403,11 @@ async def start_auto_redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global auto_redeem_active, auto_redeem_task
 
     if auto_redeem_active:
-        await update.message.reply_text("✅ Auto redeem is already active.")
+        await update.message.reply_text("✅ Withdrawal Already Active.")
         return
 
     auto_redeem_active = True
-    await update.message.reply_text("🔄 Auto fake redeem started.")
+    await update.message.reply_text("🔄 Withdrawal Started.")
 
     async def loop_redeem():
         try:
@@ -425,7 +426,7 @@ async def stop_auto_redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global auto_redeem_active, auto_redeem_task
 
     if not auto_redeem_active:
-        await update.message.reply_text("⛔ Auto fake redeem is not active.")
+        await update.message.reply_text("⛔ Withdrawal Stopped.")
         return
 
     auto_redeem_active = False
