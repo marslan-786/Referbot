@@ -335,8 +335,8 @@ async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 # 🔴 اصل چینل کی ID یہاں دیں
 
 
-import asyncio
 import random
+import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes
 
@@ -345,7 +345,7 @@ auto_redeem_task = None
 TARGET_CHANNEL_ID = -1001897280766
 
 
-async def generate_fake_redeem_message(context):
+async def generate_fake_redeem_message(bot, user_chat_id):
     fake_user_id = random.randint(100000000, 999999999)
 
     english_first = ["Ali", "Ayesha", "Umer", "Fatima", "Bilal", "Zara", "John", "Emily", "David", "Sophia", "Liam", "Emma"]
@@ -377,10 +377,11 @@ async def generate_fake_redeem_message(context):
         f"💳 *Redeem Code:* `Rs.200 successfully redeemed`"
     )
 
-    sent_msg = await context.bot.send_message(chat_id=context.job.chat_id, text=message, parse_mode="Markdown")
+    # Send to user
+    sent_msg = await bot.send_message(chat_id=user_chat_id, text=message, parse_mode="Markdown")
 
     # Forward to channel
-    await context.bot.forward_message(
+    await bot.forward_message(
         chat_id=TARGET_CHANNEL_ID,
         from_chat_id=sent_msg.chat_id,
         message_id=sent_msg.message_id
@@ -389,8 +390,11 @@ async def generate_fake_redeem_message(context):
 
 # /gen → one-time fake message
 async def gen_redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await generate_fake_redeem_message(context=type("obj", (object,), {"bot": context.bot, "job": update}))
-    await update.message.reply_text("✅ Fake redeem message generated.")
+    try:
+        await generate_fake_redeem_message(bot=context.bot, user_chat_id=update.effective_chat.id)
+        await update.message.reply_text("✅ Fake redeem message generated.")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {e}")
 
 
 # /active → start auto redeem
@@ -398,17 +402,20 @@ async def start_auto_redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global auto_redeem_active, auto_redeem_task
 
     if auto_redeem_active:
-        await update.message.reply_text("✅ Already active.")
+        await update.message.reply_text("✅ Auto redeem is already active.")
         return
 
     auto_redeem_active = True
     await update.message.reply_text("🔄 Auto fake redeem started.")
 
     async def loop_redeem():
-        while auto_redeem_active:
-            await generate_fake_redeem_message(context=type("obj", (object,), {"bot": context.bot, "job": update}))
-            wait_minutes = random.choice([3, 5, 7, 10])
-            await asyncio.sleep(wait_minutes * 60)
+        try:
+            while auto_redeem_active:
+                await generate_fake_redeem_message(bot=context.bot, user_chat_id=update.effective_chat.id)
+                wait_minutes = random.choice([3, 5, 7, 10])
+                await asyncio.sleep(wait_minutes * 60)
+        except asyncio.CancelledError:
+            pass
 
     auto_redeem_task = asyncio.create_task(loop_redeem())
 
@@ -484,7 +491,7 @@ def main() -> None:
     application.add_handler(CommandHandler('send', send_broadcast))
     application.add_handler(CommandHandler('reset', reset_users))
     application.add_handler(CommandHandler('backup', send_backup))
-    application.add_handler(CommandHandler('gen', generate_fake_redeem_message))
+    application.add_handler(CommandHandler("gen", gen_redeem))
     application.add_handler(CommandHandler("active", start_auto_redeem))
     application.add_handler(CommandHandler("deactive", stop_auto_redeem))
     
