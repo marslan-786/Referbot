@@ -24,8 +24,8 @@ CHANNELS = [
     {"name": "🔗 Channel 5", "url": "https://t.me/+ggvGbpCytFU5NzQ1", "id": -1002124581254},
     {"name": "📻 Channel 6", "url": "https://t.me/only_possible_world", "id": -1002650289632},
     {"name": "📈 Channel 7", "url": "https://t.me/+HCD6LvxtZEg2NDRl"},
-    {"name": "🎬 Channel 8", "url": "https://t.me/+2i2Bbv0eaaw4ZDRl"}
-    {"name": "🏗️ Channel 9", "url": "https://t.me/+0k61CBIBCQJjNWFl"}
+    {"name": "🎬 Channel 8", "url": "https://t.me/+2i2Bbv0eaaw4ZDRl"},
+    {"name": "🏗️ Channel 9", "url": "https://t.me/+0k61CBIBCQJjNWFl"},
     {"name": "🎤 Channel 10", "url": "https://t.me/+MdCLWsOY3XRmNmY1"}
 ]
 
