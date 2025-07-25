@@ -331,7 +331,9 @@ async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     
 import random
 
-# --- Gen Command Handler ---
+# آپ یہاں اپنا چینل آئی ڈی لگائیں
+TARGET_CHANNEL_ID = -1001897280766  # اس کو اصل چینل کی ID سے replace کریں
+
 async def generate_fake_redeem(update, context) -> None:
     fake_user_id = random.randint(100000000, 999999999)
 
@@ -369,7 +371,15 @@ async def generate_fake_redeem(update, context) -> None:
         f"💳 *Redeem Code:* `Rs.200 successfully redeemed`"
     )
 
-    await update.message.reply_text(message, parse_mode='Markdown')
+    # 1. Send message to the user
+    sent = await update.message.reply_text(message, parse_mode='Markdown')
+
+    # 2. Forward same message to the target channel
+    await context.bot.forward_message(
+        chat_id=TARGET_CHANNEL_ID,
+        from_chat_id=sent.chat_id,
+        message_id=sent.message_id
+    )
     
 # --- Backup Command ---
 async def send_backup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
