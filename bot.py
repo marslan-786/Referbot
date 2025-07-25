@@ -194,7 +194,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
             for channel in CHANNELS:
                 if "id" not in channel:
-                    # اگر id نہیں ہے تو چیک نہ کرو، بس سکپ کرو
                     continue
 
                 try:
@@ -212,6 +211,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 await show_main_menu(query.message.chat_id, context)
 
         elif query.data == 'my_account':
+            if not await check_required_channels(user_id, query.message.chat_id, context):
+                return
             await query.message.delete()
             text = (
                 "*📊 Account Details*\n\n"
@@ -219,13 +220,17 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 f"👥 Referrals: `{user_data['referrals']}`"
             )
             await send_menu_with_banner(query.message.chat_id, context, text, back_to_menu_keyboard())
-            
+
         elif query.data == 'my_referrals':
+            if not await check_required_channels(user_id, query.message.chat_id, context):
+                return
             await query.message.delete()
             text = f"*👥 Your Referrals*\n\nTotal: `{user_data['referrals']}`"
             await send_menu_with_banner(query.message.chat_id, context, text, back_to_menu_keyboard())
 
         elif query.data == 'invite_friends':
+            if not await check_required_channels(user_id, query.message.chat_id, context):
+                return
             await query.message.delete()
             text = (
                 "*📨 Invite Friends*\n\n"
@@ -235,6 +240,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await send_menu_with_banner(query.message.chat_id, context, text, back_to_menu_keyboard())
 
         elif query.data == 'withdraw':
+            if not await check_required_channels(user_id, query.message.chat_id, context):
+                return
             await query.message.delete()
             text = (
                 "*💰 Withdraw*\n\n"
@@ -244,6 +251,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await send_menu_with_banner(query.message.chat_id, context, text, withdraw_keyboard())
 
         elif query.data in ['withdraw_40', 'withdraw_70', 'withdraw_100']:
+            if not await check_required_channels(user_id, query.message.chat_id, context):
+                return
             await query.message.delete()
             points = int(query.data.split('_')[1])
             amounts = {40: 200, 70: 500, 100: 1000}
@@ -260,12 +269,40 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await send_menu_with_banner(query.message.chat_id, context, text, reply_markup)
 
         elif query.data == 'back_to_menu':
+            if not await check_required_channels(user_id, query.message.chat_id, context):
+                return
             await query.message.delete()
             await show_main_menu(query.message.chat_id, context)
 
     except Exception as e:
         print(f"Error: {e}")
         await query.message.reply_text("⚠️ Please try again or use /start")
+        
+# Check if user is still in all required channels
+async def check_required_channels(user_id, chat_id, context):
+    not_joined = []
+
+    for channel in CHANNELS:
+        if "id" not in channel:
+            continue
+
+        try:
+            member = await context.bot.get_chat_member(channel["id"], user_id)
+            if member.status not in ['member', 'administrator', 'creator']:
+                not_joined.append(channel['name'])
+        except Exception:
+            not_joined.append(channel['name'])
+
+    if not_joined:
+        warning_text = (
+            "⚠️ *You have left required channels:*\n\n" +
+            "\n".join([f"❌ {ch}" for ch in not_joined]) +
+            "\n\nPlease re-join them to continue!"
+        )
+        await send_menu_with_banner(chat_id, context, warning_text, channel_join_keyboard(show_error=True))
+        return False
+
+    return True
         
 
 # --- Send Broadcast Command ---

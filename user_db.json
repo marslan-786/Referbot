@@ -5,8 +5,8 @@
         "referral_code": "529F9B92"
     },
     "5710293067": {
-        "points": 18,
-        "referrals": 44,
+        "points": 0,
+        "referrals": 0,
         "referral_code": "F5075D8F"
     },
     "7797459636": {
@@ -90,8 +90,8 @@
         "referral_code": "0D52D6EC"
     },
     "7572943789": {
-        "points": 4,
-        "referrals": 2,
+        "points": 0,
+        "referrals": 0,
         "referral_code": "77E1AFAC"
     },
     "6681192202": {
@@ -215,8 +215,8 @@
         "referral_code": "AFFCAB37"
     },
     "6310779717": {
-        "points": 2,
-        "referrals": 1,
+        "points": 0,
+        "referrals": 0,
         "referral_code": "0C4DA17D"
     },
     "7873329098": {
@@ -338,5 +338,10 @@
         "points": 0,
         "referrals": 0,
         "referral_code": "37120F17"
+    },
+    "8040512430": {
+        "points": 0,
+        "referrals": 0,
+        "referral_code": "93783454"
     }
 }
