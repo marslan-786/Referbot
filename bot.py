@@ -3,7 +3,6 @@ import json
 import uuid
 import random
 import asyncio
-from auto_redeem import start_auto_redeem, stop_auto_redeem  # اگر الگ فائل میں ہے
 from telegram.constants import ChatAction
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
