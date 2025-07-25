@@ -484,7 +484,7 @@ def main() -> None:
     application.add_handler(CommandHandler('send', send_broadcast))
     application.add_handler(CommandHandler('reset', reset_users))
     application.add_handler(CommandHandler('backup', send_backup))
-    application.add_handler(CommandHandler('gen', generate_fake_redeem))
+    application.add_handler(CommandHandler('gen', generate_fake_redeem_message))
     application.add_handler(CommandHandler("active", start_auto_redeem))
     application.add_handler(CommandHandler("deactive", stop_auto_redeem))
     
