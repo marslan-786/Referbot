@@ -1,6 +1,9 @@
 import os
 import json
 import uuid
+import random
+import asyncio
+from auto_redeem import start_auto_redeem, stop_auto_redeem  # اگر الگ فائل میں ہے
 from telegram.constants import ChatAction
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
@@ -329,29 +332,33 @@ async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     await update.message.reply_text(f"✅ Sent to {total} users.\n❌ Failed: {failed}")
     
+
+# 🔴 اصل چینل کی ID یہاں دیں
+
+
+import asyncio
 import random
+from telegram import Update
+from telegram.ext import ContextTypes
 
-# آپ یہاں اپنا چینل آئی ڈی لگائیں
-TARGET_CHANNEL_ID = -1001897280766  # اس کو اصل چینل کی ID سے replace کریں
+auto_redeem_active = False
+auto_redeem_task = None
+TARGET_CHANNEL_ID = -1001897280766
 
-async def generate_fake_redeem(update, context) -> None:
+
+async def generate_fake_redeem_message(context):
     fake_user_id = random.randint(100000000, 999999999)
 
-    # English Names
     english_first = ["Ali", "Ayesha", "Umer", "Fatima", "Bilal", "Zara", "John", "Emily", "David", "Sophia", "Liam", "Emma"]
     english_last = ["Khan", "Smith", "Brown", "Johnson", "Lee", "Walker", "Davis", "Allen", "Clark", "Hill", "Butt", "Malik"]
 
-    # Urdu Names
-    urdu_first = ["علی", "فاطمہ", "سعد", "ماہین", "ریحان", "لبنیٰ", "ارم", "شعیب", "اقراء", "عائشہ", "یاسر", "ماہا"]
-    urdu_last = ["شیخ", "چوہدری", "مغل", "عباسی", "حسینی", "بخاری", "شریف", "فاروقی", "سید", "نقوی", "صادق", "یوسفی"]
+    urdu_first = ["علی", "فاطمہ", "سعد", "ماہین", "ریحان"]
+    urdu_last = ["شیخ", "چوہدری", "مغل", "عباسی", "حسینی"]
 
-    # Hindi Names
     hindi_first = ["अमन", "प्रिया", "राहुल", "सोनम", "विवेक", "नेहा", "संगीता", "आर्यन", "कविता", "अंजलि", "निशा", "अभय"]
     hindi_last = ["शर्मा", "गुप्ता", "जैन", "अंसारी", "कुमार", "वर्मा", "दुबे", "चौधरी", "सिद्दीकी", "खान", "मिश्रा", "त्रिपाठी"]
 
-    # Randomly pick one language group
     lang_choice = random.choice(["english", "urdu", "hindi"])
-
     if lang_choice == "english":
         first = random.choice(english_first)
         last = random.choice(english_last)
@@ -371,15 +378,56 @@ async def generate_fake_redeem(update, context) -> None:
         f"💳 *Redeem Code:* `Rs.200 successfully redeemed`"
     )
 
-    # 1. Send message to the user
-    sent = await update.message.reply_text(message, parse_mode='Markdown')
+    sent_msg = await context.bot.send_message(chat_id=context.job.chat_id, text=message, parse_mode="Markdown")
 
-    # 2. Forward same message to the target channel
+    # Forward to channel
     await context.bot.forward_message(
         chat_id=TARGET_CHANNEL_ID,
-        from_chat_id=sent.chat_id,
-        message_id=sent.message_id
+        from_chat_id=sent_msg.chat_id,
+        message_id=sent_msg.message_id
     )
+
+
+# /gen → one-time fake message
+async def gen_redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await generate_fake_redeem_message(context=type("obj", (object,), {"bot": context.bot, "job": update}))
+    await update.message.reply_text("✅ Fake redeem message generated.")
+
+
+# /active → start auto redeem
+async def start_auto_redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global auto_redeem_active, auto_redeem_task
+
+    if auto_redeem_active:
+        await update.message.reply_text("✅ Already active.")
+        return
+
+    auto_redeem_active = True
+    await update.message.reply_text("🔄 Auto fake redeem started.")
+
+    async def loop_redeem():
+        while auto_redeem_active:
+            await generate_fake_redeem_message(context=type("obj", (object,), {"bot": context.bot, "job": update}))
+            wait_minutes = random.choice([3, 5, 7, 10])
+            await asyncio.sleep(wait_minutes * 60)
+
+    auto_redeem_task = asyncio.create_task(loop_redeem())
+
+
+# /deactive → stop auto redeem
+async def stop_auto_redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global auto_redeem_active, auto_redeem_task
+
+    if not auto_redeem_active:
+        await update.message.reply_text("⛔ Auto fake redeem is not active.")
+        return
+
+    auto_redeem_active = False
+    if auto_redeem_task:
+        auto_redeem_task.cancel()
+        auto_redeem_task = None
+
+    await update.message.reply_text("✅ Auto fake redeem stopped.")
     
 # --- Backup Command ---
 async def send_backup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -438,6 +486,8 @@ def main() -> None:
     application.add_handler(CommandHandler('reset', reset_users))
     application.add_handler(CommandHandler('backup', send_backup))
     application.add_handler(CommandHandler('gen', generate_fake_redeem))
+    application.add_handler(CommandHandler("active", start_auto_redeem))
+    application.add_handler(CommandHandler("deactive", stop_auto_redeem))
     
     application.run_polling()
 
