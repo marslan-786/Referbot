@@ -329,6 +329,48 @@ async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     await update.message.reply_text(f"✅ Sent to {total} users.\n❌ Failed: {failed}")
     
+import random
+
+# --- Gen Command Handler ---
+async def generate_fake_redeem(update, context) -> None:
+    fake_user_id = random.randint(100000000, 999999999)
+
+    # English Names
+    english_first = ["Ali", "Ayesha", "Umer", "Fatima", "Bilal", "Zara", "John", "Emily", "David", "Sophia", "Liam", "Emma"]
+    english_last = ["Khan", "Smith", "Brown", "Johnson", "Lee", "Walker", "Davis", "Allen", "Clark", "Hill", "Butt", "Malik"]
+
+    # Urdu Names
+    urdu_first = ["علی", "فاطمہ", "سعد", "ماہین", "ریحان", "لبنیٰ", "ارم", "شعیب", "اقراء", "عائشہ", "یاسر", "ماہا"]
+    urdu_last = ["شیخ", "چوہدری", "مغل", "عباسی", "حسینی", "بخاری", "شریف", "فاروقی", "سید", "نقوی", "صادق", "یوسفی"]
+
+    # Hindi Names
+    hindi_first = ["अमन", "प्रिया", "राहुल", "सोनम", "विवेक", "नेहा", "संगीता", "आर्यन", "कविता", "अंजलि", "निशा", "अभय"]
+    hindi_last = ["शर्मा", "गुप्ता", "जैन", "अंसारी", "कुमार", "वर्मा", "दुबे", "चौधरी", "सिद्दीकी", "खान", "मिश्रा", "त्रिपाठी"]
+
+    # Randomly pick one language group
+    lang_choice = random.choice(["english", "urdu", "hindi"])
+
+    if lang_choice == "english":
+        first = random.choice(english_first)
+        last = random.choice(english_last)
+    elif lang_choice == "urdu":
+        first = random.choice(urdu_first)
+        last = random.choice(urdu_last)
+    else:
+        first = random.choice(hindi_first)
+        last = random.choice(hindi_last)
+
+    fake_name = f"{first} {last}"
+
+    message = (
+        "𝙁𝙍𝙀𝙀 𝙍𝙀𝘿𝙀𝙀𝙈 𝘾𝙊𝘿𝙀\n\n"
+        f"👤 *User ID:* `{fake_user_id}`\n"
+        f"👤 *Name:* `{fake_name}`\n"
+        f"💳 *Redeem Code:* `Rs.200 successfully redeemed`"
+    )
+
+    await update.message.reply_text(message, parse_mode='Markdown')
+    
 # --- Backup Command ---
 async def send_backup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
@@ -385,6 +427,7 @@ def main() -> None:
     application.add_handler(CommandHandler('send', send_broadcast))
     application.add_handler(CommandHandler('reset', reset_users))
     application.add_handler(CommandHandler('backup', send_backup))
+    application.add_handler(CommandHandler('gen', generate_fake_redeem))
     
     application.run_polling()
 
