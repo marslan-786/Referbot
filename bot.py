@@ -25,6 +25,8 @@ CHANNELS = [
     {"name": "📻 Channel 6", "url": "https://t.me/only_possible_world", "id": -1002650289632},
     {"name": "📈 Channel 7", "url": "https://t.me/+HCD6LvxtZEg2NDRl"},
     {"name": "🎬 Channel 8", "url": "https://t.me/+2i2Bbv0eaaw4ZDRl"}
+    {"name": "🏗️ Channel 9", "url": "https://t.me/+0k61CBIBCQJjNWFl"}
+    {"name": "🎤 Channel 10", "url": "https://t.me/+MdCLWsOY3XRmNmY1"}
 ]
 
 # Track user clicks for channel joining
@@ -308,6 +310,15 @@ async def send_backup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     except Exception as e:
         await update.message.reply_text(f"⚠️ Error while sending files: {e}")
         
+# --- Reset Command ---
+async def reset_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    db = load_user_db()
+    for user_id in db:
+        db[user_id]["points"] = 0
+        db[user_id]["referrals"] = 0
+    save_user_db(db)
+    await update.message.reply_text("✅ All users' points and referrals have been reset to 0.")
+        
 # Status command
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     db = load_user_db()
@@ -335,6 +346,7 @@ def main() -> None:
     application.add_handler(CommandHandler('status', status))
     application.add_handler(CallbackQueryHandler(button))
     application.add_handler(CommandHandler('send', send_broadcast))
+    application.add_handler(CommandHandler('reset', reset_users))
     application.add_handler(CommandHandler('backup', send_backup))
     
     application.run_polling()
