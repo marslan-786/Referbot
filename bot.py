@@ -503,7 +503,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 def main() -> None:
     init_user_db()
     application = ApplicationBuilder() \
-        .token("7559363335:AAHF6qXVfbEqhEUdsa_pABu-12UPq4-5dxo") \
+        .token(TOKEN) \
         .concurrent_updates(True) \
         .build()
     
