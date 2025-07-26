@@ -163,13 +163,29 @@ async def show_main_menu(chat_id, context):
 
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import ContextTypes
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message:
+        return
+
+    user_id = update.effective_user.id
+    get_user_data(user_id)  # ✅ Save user data if not already
+
+    # Handle referral if exists
+    if context.args and len(context.args) > 0 and context.args[0].startswith('ref'):
+        referrer_code = context.args[0][3:]
+        db = load_user_db()
+        referrer_id = next((uid for uid, data in db.items() if data.get('referral_code') == referrer_code), None)
+        if referrer_id and referrer_id != str(user_id):
+            handle_referral(user_id, int(referrer_id))
+            get_user_data(user_id)  # Refresh after referral update
+
     keyboard = [
         [InlineKeyboardButton("📢 Join Channel", url="https://t.me/only_possible_world")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
+
     await update.message.reply_text(
         "👋 Welcome to my bot!\n\nPlease join this channel first to continue:",
         reply_markup=reply_markup
