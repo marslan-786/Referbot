@@ -310,11 +310,21 @@ async def check_required_channels(user_id, chat_id, context):
 # --- Send Broadcast Command ---
 
 async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not context.args:
+    if not update.message.text:
         await update.message.reply_text("⚠️ Usage: Reply to a media with /send Your caption here")
         return
 
-    message = ' '.join(context.args)
+    # Get the full message text and remove the "/send" command
+    full_text = update.message.text
+    if full_text.startswith("/send"):
+        message = full_text.replace("/send", "", 1).strip()
+    else:
+        message = full_text.strip()
+
+    if not message:
+        await update.message.reply_text("⚠️ Please provide a message after /send")
+        return
+
     db = load_user_db()
     total = 0
     failed = 0
@@ -335,14 +345,12 @@ async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 elif reply.animation:
                     await context.bot.send_animation(chat_id=int(user_id), animation=reply.animation.file_id, caption=message)
                 else:
-                    # fallback to text if no supported media
                     await context.bot.send_message(chat_id=int(user_id), text=message)
                 total += 1
             except Exception:
                 failed += 1
                 continue
     else:
-        # If not a reply, send as plain text
         for user_id in db.keys():
             try:
                 await context.bot.send_message(chat_id=int(user_id), text=message)
