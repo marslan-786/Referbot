@@ -160,8 +160,21 @@ async def show_main_menu(chat_id, context):
         main_menu_keyboard()
     )
 
+def start(update: Update, context: CallbackContext):
+    keyboard = [
+        [InlineKeyboardButton("📢 Join Channel", url="https://t.me/only_possible_world")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.message.reply_text(
+        "👋 Welcome to my bot!\n\nPlease join this channel first to continue:",
+        reply_markup=reply_markup
+    )
+
+# Handler add کرنے کے لیے
+# application.add_handler(CommandHandler("start", start))
+
 # Start command
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+""" async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message:
         return
         
@@ -179,7 +192,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     
     # Show channel join menu first
     await show_channel_join_menu(update.message.chat_id, context, user_id)
-
+"""
 # Button handler
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
