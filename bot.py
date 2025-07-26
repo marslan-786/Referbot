@@ -294,6 +294,21 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     except Exception as e:
         print(f"Error: {e}")
         await query.message.reply_text("⚠️ براہ کرم دوبارہ کوشش کریں یا /start استعمال کریں")
+        
+async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    db = load_user_db()
+    total_users = len(db)
+    total_points = sum(user.get("points", 0) for user in db.values())
+    total_referrals = sum(user.get("referrals", 0) for user in db.values())
+
+    text = (
+        "*📊 Bot Status*\n\n"
+        f"👥 Total Users: `{total_users}`\n"
+        f"🎯 Total Points Earned: `{total_points}`\n"
+        f"🤝 Total Referrals Made: `{total_referrals}`"
+    )
+
+    await update.message.reply_text(text, parse_mode='Markdown')
 
 # Check if user is still in all required channels
 async def check_required_channels(user_id, chat_id, context):
@@ -334,12 +349,6 @@ def main() -> None:
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('status', status))
     application.add_handler(CallbackQueryHandler(button))
-    application.add_handler(CommandHandler('send', send_broadcast))
-    application.add_handler(CommandHandler('reset', reset_users))
-    application.add_handler(CommandHandler('backup', send_backup))
-    application.add_handler(CommandHandler("gen", gen_redeem))
-    application.add_handler(CommandHandler("active", start_auto_redeem))
-    application.add_handler(CommandHandler("deactive", stop_auto_redeem))
     
     application.run_polling()
 
