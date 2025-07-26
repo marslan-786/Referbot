@@ -308,9 +308,11 @@ async def check_required_channels(user_id, chat_id, context):
         
 
 # --- Send Broadcast Command ---
+from telegram import ChatAction
+
 async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not context.args:
-        await update.message.reply_text("⚠️ Usage: /send Your message here")
+        await update.message.reply_text("⚠️ Usage: Reply to a media with /send Your caption here")
         return
 
     message = ' '.join(context.args)
@@ -321,13 +323,34 @@ async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await update.message.reply_text("📤 Sending message to all users...")
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
 
-    for user_id in db.keys():
-        try:
-            await context.bot.send_message(chat_id=int(user_id), text=message)
-            total += 1
-        except Exception:
-            failed += 1
-            continue
+    reply = update.message.reply_to_message
+    if reply:
+        for user_id in db.keys():
+            try:
+                if reply.photo:
+                    await context.bot.send_photo(chat_id=int(user_id), photo=reply.photo[-1].file_id, caption=message)
+                elif reply.video:
+                    await context.bot.send_video(chat_id=int(user_id), video=reply.video.file_id, caption=message)
+                elif reply.document:
+                    await context.bot.send_document(chat_id=int(user_id), document=reply.document.file_id, caption=message)
+                elif reply.animation:
+                    await context.bot.send_animation(chat_id=int(user_id), animation=reply.animation.file_id, caption=message)
+                else:
+                    # fallback to text if no supported media
+                    await context.bot.send_message(chat_id=int(user_id), text=message)
+                total += 1
+            except Exception:
+                failed += 1
+                continue
+    else:
+        # If not a reply, send as plain text
+        for user_id in db.keys():
+            try:
+                await context.bot.send_message(chat_id=int(user_id), text=message)
+                total += 1
+            except Exception:
+                failed += 1
+                continue
 
     await update.message.reply_text(f"✅ Sent to {total} users.\n❌ Failed: {failed}")
     
@@ -481,7 +504,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 def main() -> None:
     init_user_db()
     application = ApplicationBuilder() \
-        .token(TOKEN) \
+        .token("7559363335:AAHF6qXVfbEqhEUdsa_pABu-12UPq4-5dxo") \
         .concurrent_updates(True) \
         .build()
     
