@@ -158,6 +158,8 @@ async def show_main_menu(chat_id, context):
         context,
         "*🏠 Main Menu*\n\nWelcome to Google Play Redeem Code Bot",
         main_menu_keyboard()
+        
+    )
 
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
