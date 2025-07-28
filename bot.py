@@ -25,7 +25,7 @@ CHANNELS = [
     {"name": "🔗 Channel 4", "url": "https://t.me/+dsm5id0xjLQyZjcx"},
     {"name": "📻 Channel 5", "url": "https://t.me/only_possible_world", "id": -1002650289632},
     {"name": "📈 Channel 6", "url": "https://t.me/UnKnowNConTroL"},
-    {"name": "🎬 Channel 7", "url": "https://t.me/addlist/L4ntj2irF7pkNjNl"}
+    {"name": "🎬 Channel 7", "url": "https://t.me/addlist/8Ys5Lxzn_Sc4M2Rl"}
 ]
 
 # Track user clicks for channel joining
