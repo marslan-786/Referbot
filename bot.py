@@ -19,12 +19,12 @@ USER_DB_FILE = "user_db.json"
 
 # Channel configuration (replace with your actual channels)
 CHANNELS = [
-    {"name": "🔔 Channel 1", "url": "https://t.me/+92ZkRWBBExhmNzY1", "id": -1002215184698},
-    {"name": "🔊 Channel 2", "url": "https://t.me/botsworldtar", "id": -1001826519793},
-    {"name": "📡 Channel 3", "url": "https://t.me/+ddWJ_3i9FKEwYzM9", "id": -1002650001462},
-    {"name": "🔗 Channel 4", "url": "https://t.me/+ggvGbpCytFU5NzQ1", "id": -1002124581254},
+    {"name": "🔔 Channel 1", "url": "https://t.me/+ddWJ_3i9FKEwYzM9"},
+    {"name": "🔊 Channel 2", "url": "https://t.me/+ggvGbpCytFU5NzQ1"},
+    {"name": "📡 Channel 3", "url": "https://t.me/botsworldtar"},
+    {"name": "🔗 Channel 4", "url": "https://t.me/+dsm5id0xjLQyZjcx"},
     {"name": "📻 Channel 5", "url": "https://t.me/only_possible_world", "id": -1002650289632},
-    {"name": "📈 Channel 6", "url": "https://t.me/+HCD6LvxtZEg2NDRl"},
+    {"name": "📈 Channel 6", "url": "https://t.me/UnKnowNConTroL"},
     {"name": "🎬 Channel 7", "url": "https://t.me/+2i2Bbv0eaaw4ZDRl"},
     {"name": "🏗️ Channel 8", "url": "https://t.me/+0k61CBIBCQJjNWFl"},
     {"name": "🎤 Channel 9", "url": "https://t.me/+MdCLWsOY3XRmNmY1"},
