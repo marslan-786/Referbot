@@ -25,10 +25,12 @@ CHANNELS = [
     {"name": "🔗 Channel 4", "url": "https://t.me/+dsm5id0xjLQyZjcx"},
     {"name": "📻 Channel 5", "url": "https://t.me/only_possible_world", "id": -1002650289632},
     {"name": "📈 Channel 6", "url": "https://t.me/UnKnowNConTroL"},
-    {"name": "🎬 Channel 7", "url": "https://t.me/+2i2Bbv0eaaw4ZDRl"},
+    {"name": "🎬 Channel 7", "url": "https://t.me/addlist/L4ntj2irF7pkNjNl"}
+    """
     {"name": "🏗️ Channel 8", "url": "https://t.me/+0k61CBIBCQJjNWFl"},
     {"name": "🎤 Channel 9", "url": "https://t.me/+MdCLWsOY3XRmNmY1"},
     {"name": "🦸 Channel 10", "url": "https://t.me/+bxuTB3JZ2SYwNTY1"}
+    """
 ]
 
 # Track user clicks for channel joining
