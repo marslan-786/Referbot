@@ -164,7 +164,7 @@ async def show_main_menu(chat_id, context):
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-
+"""
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
@@ -217,7 +217,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     
     # Show channel join menu first
     await show_channel_join_menu(update.message.chat_id, context, user_id)
-   """
+
 
 # Button handler
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
